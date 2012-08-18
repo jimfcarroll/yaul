@@ -7,8 +7,9 @@ Well, why another utility library? Why not. Actually, this one should fill in
 a few gaps and not really replace what's out there.
 
 Currently it contains a C++ based dependency injection framework. Please see
-di/di.h for complete details.
+di.h for complete details.
 
 Current Dependencies:
         boost::shared_ptr
         UnitTest++ - to build and run the tests
+        StdString.h - by Joe O'Leary. This is distributed with the code.
