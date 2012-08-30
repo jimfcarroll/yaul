@@ -303,7 +303,7 @@ namespace di
         ((*get()).*(preDestroyMethod))();
     }
 
-    inline explicit Instance(internal::FactoryBase* factory, const char* name) : 
+    inline explicit Instance(boost::shared_ptr<internal::FactoryBase> factory, const char* name) : 
       InstanceBase(factory, name,Type<T>()), postConstructMethod(NULL), 
       preDestroyMethod(NULL) { provides(Type<T>()); }
 
@@ -424,7 +424,7 @@ namespace di
      */
     template<typename T> inline Instance<T>& hasInstance(const Type<T>& bean) 
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory0<T>,bean.getId());
+      Instance<T>* newInstance = new Instance<T>(boost::shared_ptr<internal::FactoryBase>(new internal::Factory0<T>),bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -439,7 +439,7 @@ namespace di
      */
     template<typename T> inline Instance<T>& hasInstance(const char* id, const Type<T>& bean)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory0<T>,id);
+      Instance<T>* newInstance = new Instance<T>(boost::shared_ptr<internal::FactoryBase>(new internal::Factory0<T>),id);
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -457,7 +457,7 @@ namespace di
      */
     template<typename T, typename P1> inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory1<T,P1>(p1),bean.getId());
+      Instance<T>* newInstance = new Instance<T>(boost::shared_ptr<internal::FactoryBase>(new internal::Factory1<T,P1>(p1)),bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -474,7 +474,7 @@ namespace di
      */
     template<typename T, typename P1, typename P2> inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory2<T,P1,P2>(p1,p2), bean.getId());
+      Instance<T>* newInstance = new Instance<T>(boost::shared_ptr<internal::FactoryBase>(new internal::Factory2<T,P1,P2>(p1,p2)), bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -492,7 +492,7 @@ namespace di
     template<typename T, typename P1, typename P2, typename P3> 
     inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2, const P3& p3)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory3<T,P1,P2,P3>(p1,p2,p3), bean.getId());
+      Instance<T>* newInstance = new Instance<T>(boost::shared_ptr<internal::FactoryBase>(new internal::Factory3<T,P1,P2,P3>(p1,p2,p3)), bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -510,7 +510,7 @@ namespace di
     template<typename T, typename P1, typename P2, typename P3, typename P4> 
     inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2, const P3& p3, const P4& p4)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory4<T,P1,P2,P3,P4>(p1,p2,p3,p4), bean.getId());
+      Instance<T>* newInstance = new Instance<T>(boost::shared_ptr<internal::FactoryBase>(new internal::Factory4<T,P1,P2,P3,P4>(p1,p2,p3,p4)), bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }

@@ -104,13 +104,13 @@ namespace internal
 
     std::vector<TypeConverterBase*> providesTheseTypes;
     std::vector<RequirementBase*> requirements;
-    internal::FactoryBase* factory;
+    boost::shared_ptr<internal::FactoryBase> factory;
     bool hasInstance;
 
     virtual void doPostConstruct() = 0;
     virtual void doPreDestroy() = 0;
 
-    inline InstanceBase(FactoryBase* f, const char* name, const TypeBase& tb) : 
+    inline InstanceBase(boost::shared_ptr<FactoryBase>& f, const char* name, const TypeBase& tb) : 
       type(tb), hasId(false), factory(f), hasInstance(false) { if (name) { id = name; hasId = true; } }
 
     inline InstanceBase(const InstanceBase& other) : 
