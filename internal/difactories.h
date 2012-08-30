@@ -47,9 +47,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      typename T1::type cp1 = p1.find(context);
-      
-      return new M(cp1);
+      return new M(p1.find(context));
     }
   };
 
@@ -73,10 +71,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      typename T1::type cp1 = p1.find(context);
-      typename T2::type cp2 = p2.find(context);
-      
-      return new M(cp1,cp2);
+      return new M(p1.find(context),p2.find(context));
     }
   };
 
@@ -101,11 +96,32 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      typename T1::type cp1 = p1.find(context);
-      typename T2::type cp2 = p2.find(context);
-      typename T3::type cp3 = p3.find(context);
-      
-      return new M(cp1,cp2,cp3);
+      return new M(p1.find(context),p2.find(context),p3.find(context));
+    }
+  };
+
+  /**
+   * Factory to create an instance of an M with a constructor that takes
+   *  three parameter.
+   */
+  template<typename M, typename T1, typename T2, typename T3, typename T4> 
+  class Factory4 : public internal::FactoryBase
+  {
+  protected:
+    T1 p1; T2 p2; T3 p3; T4 p4;
+
+  public:
+    inline Factory4(const T1& pp1, const T2& pp2, const T3& pp3, const T4& pp4) : 
+      p1(pp1), p2(pp2), p3(pp3), p4(pp4) {}
+
+    inline virtual bool dependenciesSatisfied(Context* context) 
+    { 
+      return p1.available(context) && p2.available(context) && p3.available(context) && p4.available(context); 
+    }
+
+    inline virtual void* create(Context* context) throw (DependencyInjectionException)
+    {
+      return new M(p1.find(context),p2.find(context),p3.find(context),p4.find(context));
     }
   };
   //=======================================================================

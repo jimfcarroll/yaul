@@ -31,6 +31,8 @@ namespace constructorDiTests
     inline MyBean(Foo* ptr) : foo(ptr), ival(-1) {}
     inline MyBean(int i) : foo(NULL), ival(i) {}
     inline MyBean(const char* n) : foo(NULL), ival(-1), name(n) {}
+    inline MyBean(Foo* ptr, int i, const char* n) : foo(ptr), ival(i), name(n) {}
+    inline MyBean(Foo* ptr, int i, const char* n, Foo* ptr2) : foo(ptr2), ival(i), name(n) {}
   };
 
   TEST(ci)
@@ -77,6 +79,38 @@ namespace constructorDiTests
     CHECK(mybean->foo == context.get(Type<Foo>()));
     context.stop();
   }
+
+  TEST(ci3Params)
+  {
+    Context context;
+    context.hasInstance(Type<MyBean>(),Type<Foo>(),Constant<int>(5),Constant<const char*>("Hello"));
+    context.hasInstance(Type<Foo>());
+    context.start();
+    MyBean* mybean = context.get(Type<MyBean>());
+    CHECK(mybean != NULL);
+    CHECK(mybean->foo != NULL);
+    CHECK(mybean->ival == 5);
+    CHECK(mybean->name == "Hello");
+    CHECK(mybean->foo == context.get(Type<Foo>()));
+    context.stop();
+  }
+
+  TEST(ci4ParamsWObjConstant)
+  {
+    Foo* tmpfoo;
+    Context context;
+    context.hasInstance(Type<MyBean>(),Type<Foo>(),Constant<int>(5),Constant<const char*>("Hello"),Constant<Foo*>(tmpfoo = new Foo));
+    context.hasInstance(Type<Foo>());
+    context.start();
+    MyBean* mybean = context.get(Type<MyBean>());
+    CHECK(mybean != NULL);
+    CHECK(mybean->foo != NULL);
+    CHECK(mybean->ival == 5);
+    CHECK(mybean->name == "Hello");
+    CHECK(mybean->foo == tmpfoo);
+    context.stop();
+  }
+
 
   TEST(ciConstant)
   {

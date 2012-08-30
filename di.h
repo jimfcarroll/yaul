@@ -480,6 +480,42 @@ namespace di
     }
 
     /**
+     * This template method creates an instance that uses constructor injection.
+     * This form assumes that constructor of the object "T" takes two parameter.
+     * The parameter is identified by P? which can be either:
+     *
+     *  1) A reference to another instance using the di::Ref class template.
+     *  2) A constant value using the di::Constant class template.
+     *
+     * Anything else passed will create a compile error.
+     */
+    template<typename T, typename P1, typename P2, typename P3> 
+    inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2, const P3& p3)
+    { 
+      Instance<T>* newInstance = new Instance<T>(new internal::Factory3<T,P1,P2,P3>(p1,p2,p3), bean.getId());
+      instances.push_back(newInstance);
+      return *newInstance;
+    }
+
+    /**
+     * This template method creates an instance that uses constructor injection.
+     * This form assumes that constructor of the object "T" takes two parameter.
+     * The parameter is identified by P? which can be either:
+     *
+     *  1) A reference to another instance using the di::Ref class template.
+     *  2) A constant value using the di::Constant class template.
+     *
+     * Anything else passed will create a compile error.
+     */
+    template<typename T, typename P1, typename P2, typename P3, typename P4> 
+    inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2, const P3& p3, const P4& p4)
+    { 
+      Instance<T>* newInstance = new Instance<T>(new internal::Factory4<T,P1,P2,P3,P4>(p1,p2,p3,p4), bean.getId());
+      instances.push_back(newInstance);
+      return *newInstance;
+    }
+
+    /**
      * This triggers the wiring and startup object lifecycle stages. Theses include,
      *  in order:
      *
