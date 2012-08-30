@@ -15,7 +15,7 @@ namespace di
     const std::string RequirementBase::toString() const
     {
       CStdString msg;
-      if (specifiesIdp)
+      if (specifiesId)
         msg.Format("(%s requires %s with id %s)",instance.getTypeInfo().name(), parameter.getTypeInfo().name(), requiredId.c_str());
       else
         msg.Format("(%s requires %s)",instance.getTypeInfo().name(), parameter.getTypeInfo().name());
@@ -53,7 +53,6 @@ namespace di
 
       return false;
     }
-
   }
 
   internal::InstanceBase* Context::find(const std::type_info& typeInfo)
@@ -92,6 +91,7 @@ namespace di
         instance = (*it);
         instance->reset();
       }
+      catch (DependencyInjectionException& die) { throw die; }
       catch (...) 
       { 
         // this prints a message to the log as long as there is a logger set in the exception
@@ -115,6 +115,7 @@ namespace di
         {
           instance->doPreDestroy();
         }
+        catch (DependencyInjectionException& die) { throw die; }
         catch (...)
         {
           // hum .... what to do? c++ sucks here in that I cannot get a handle to the 
@@ -145,15 +146,40 @@ namespace di
       throw DependencyInjectionException("Called start for a second time on a di::Context.");
 
     // First instantiate
+    // This loop is stupid. Instead the order of instantiation ought to be determined.
+    //  but for now this works.
     internal::InstanceBase* instance;
     try
     {
-      for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+      std::vector<internal::InstanceBase*> workingList;
+      workingList = instances;
+
+      while (workingList.size() > 0)
       {
-        instance = (*it);
-        instance->instantiateInstance();
+        int preCount = workingList.size();
+        internal::InstanceBase* firstNotInstantiated = NULL;
+
+        std::vector<internal::InstanceBase*> tmpvector;
+
+        for(std::vector<internal::InstanceBase*>::iterator it = workingList.begin(); it != workingList.end(); it++)
+        {
+          instance = (*it);
+          if (instance->factory->dependenciesSatisfied(this))
+            instance->instantiateInstance(this);
+          else if (firstNotInstantiated == NULL)
+          {
+            firstNotInstantiated = instance;
+            tmpvector.push_back(instance);
+          }
+        }
+
+        workingList = tmpvector;
+
+        if (preCount == workingList.size() && workingList.size() > 0)
+          throw DependencyInjectionException("Cannot resolve constructor dependencies for \"%s\"", firstNotInstantiated->toString().c_str());
       }
     }
+    catch (DependencyInjectionException& die) { throw die; }
     catch (...)
     {
       // hum .... what to do? c++ sucks here in that I cannot get a handle to the 
@@ -216,6 +242,7 @@ namespace di
       {
         instance->doPostConstruct();
       }
+      catch (DependencyInjectionException& die) { throw die; }
       catch (...)
       {
         // hum .... what to do? c++ sucks here in that I cannot get a handle to the 

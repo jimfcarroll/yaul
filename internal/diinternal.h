@@ -22,6 +22,7 @@ namespace internal
 {
   class RequirementBase;
   class InstanceBase;
+  class FactoryBase;
 
   /**
    * holds simple rtti type information. Defines equivalence and toString
@@ -30,6 +31,7 @@ namespace internal
   {
     friend class InstanceBase;
     friend class RequirementBase;
+    friend class FactoryBase;
 
   protected:
     const std::type_info* type;
@@ -92,6 +94,7 @@ namespace internal
   {
     friend class di::Context;
     friend class RequirementBase;
+    friend class FactoryBase;
 
   protected:
 
@@ -101,33 +104,39 @@ namespace internal
 
     std::vector<TypeConverterBase*> providesTheseTypes;
     std::vector<RequirementBase*> requirements;
+    internal::FactoryBase* factory;
+    bool hasInstance;
 
     virtual void doPostConstruct() = 0;
     virtual void doPreDestroy() = 0;
 
-    inline explicit InstanceBase(const TypeBase& tb) : type(tb), hasId(false) {}
+    inline explicit InstanceBase(FactoryBase* f, const TypeBase& tb) : 
+      type(tb), hasId(false), factory(f), hasInstance(false) {}
 
-    inline InstanceBase(const char* name, const TypeBase& tb) : type(tb), id(name), hasId(true) {}
+    inline InstanceBase(FactoryBase* f, const char* name, const TypeBase& tb) : 
+      type(tb), id(name), hasId(true), factory(f), hasInstance(false) {}
 
-    inline InstanceBase(const InstanceBase& other) : type(other.type), id(other.id), hasId(other.hasId),
-                                                     providesTheseTypes(other.providesTheseTypes), 
-                                                     requirements(other.requirements){ }
+    inline InstanceBase(const InstanceBase& other) : 
+      type(other.type), id(other.id), hasId(other.hasId), providesTheseTypes(other.providesTheseTypes), 
+      requirements(other.requirements), factory(other.factory), hasInstance(false) { }
 
     inline virtual ~InstanceBase() { }
 
     inline std::vector<RequirementBase*>& getRequirements() { return requirements; }
 
-    inline const std::string toString() const { return hasId ? (id + ":" + type.toString()) : type.toString(); }
+    bool canConvertTo(const TypeBase& other) const;
+
+    virtual void instantiateInstance(di::Context*) = 0;
+
+    virtual void reset() = 0;
+  public:
+    virtual const void* getConcrete() const = 0;
 
     void* convertTo(const TypeBase& typeToConvertTo) const throw (DependencyInjectionException);
 
-    bool canConvertTo(const TypeBase& other) const;
+    inline bool instantiated() { return hasInstance; }
 
-    virtual const void* getConcrete() const = 0;
-
-    virtual void instantiateInstance() = 0;
-
-    virtual void reset() = 0;
+    inline const std::string toString() const { return hasId ? (id + ":" + type.toString()) : type.toString(); }
   };
 
   /**
@@ -142,20 +151,16 @@ namespace internal
     TypeBase parameter;
 
     std::string requiredId;
-    bool specifiesIdp;
+    bool specifiesId;
 
-    inline RequirementBase(const std::type_info& obj, const std::type_info& param) : 
-      instance(obj), parameter(param), specifiesIdp(false) {}
     inline RequirementBase(const char* id, const std::type_info& obj, const std::type_info& param) : 
-      instance(obj), parameter(param), requiredId(id), specifiesIdp(id != NULL) {}
+      instance(obj), parameter(param), specifiesId(id != NULL) { if (id != NULL) requiredId = id; }
 
     virtual ~RequirementBase() {}
 
-    inline bool specifiesId() const { return specifiesIdp; }
-
     inline bool isSatisfiedBy(const InstanceBase* dep)
     {
-      return specifiesIdp ? (dep->hasId ? (requiredId == dep->id && dep->canConvertTo(parameter)) : false) : dep->canConvertTo(parameter);
+      return specifiesId ? (dep->hasId ? (requiredId == dep->id && dep->canConvertTo(parameter)) : false) : dep->canConvertTo(parameter);
     }
 
     virtual const std::string toString() const;
@@ -163,14 +168,6 @@ namespace internal
     virtual void satisfyWith(InstanceBase* dependency) throw (DependencyInjectionException) = 0;
     virtual bool satisfiedWithSet() = 0;
     virtual void satisfyWithSet(const std::vector<InstanceBase*>& dep) throw (DependencyInjectionException) = 0;
-
-    // hacks for child to call other stuff
-    inline void* instanceBaseConvertTo(InstanceBase* dep, const TypeBase& typeToConvertTo) const 
-      throw (DependencyInjectionException) { return dep->convertTo(typeToConvertTo); }
-
-    inline const std::string toString(const InstanceBase& dep) const { return dep.toString(); }
-
-    inline const void* getConcrete(InstanceBase* instance) const { return instance->getConcrete(); }
   };
 
   /**
@@ -189,17 +186,14 @@ namespace internal
     SetterAll setterAll;
     InstanceBase* requirementOf;
 
-    inline Requirement(InstanceBase* thingWithSetter, Setter func) : 
-      RequirementBase(typeid(T), typeid(D)), setter(func), 
-      setterAll(NULL), requirementOf(thingWithSetter) {}
     inline Requirement(InstanceBase* thingWithSetter, SetterAll func) : 
-      RequirementBase(typeid(T), typeid(D)), setter(NULL), 
+      RequirementBase(NULL, typeid(T), typeid(D)), setter(NULL), 
       setterAll(func), requirementOf(thingWithSetter) {}
     inline Requirement(const char* id, InstanceBase* thingWithSetter, Setter func) : 
       RequirementBase(id,typeid(T), typeid(D)), setter(func), setterAll(NULL),
       requirementOf(thingWithSetter) {}
 
-    inline T* getRequirementOf() { return (T*)getConcrete(requirementOf); }
+    inline T* getRequirementOf() { return (T*)requirementOf->getConcrete(); }
 
     inline void injectRequirement(D* objectToInject) { ((*getRequirementOf()).*(setter))(objectToInject);  }
     inline void injectRequirementSet(const std::vector<D*>& objectToInject) { ((*getRequirementOf()).*(setterAll))(objectToInject);  }
@@ -207,11 +201,11 @@ namespace internal
     inline virtual void satisfyWith(InstanceBase* dep) throw (DependencyInjectionException)
     {
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
-      std::cout << "requirement:" << toString() << " is satisfied by " << toString(*dep) << std::endl;
+      std::cout << "requirement:" << toString() << " is satisfied by " << dep->toString() << std::endl;
 #endif
-      D* actualDep = (D*)instanceBaseConvertTo(dep,parameter);
+      D* actualDep = (D*)dep->convertTo(parameter);
       if (actualDep == NULL)
-        throw DependencyInjectionException("Can't satisfy a requirement for '%s' with '%s.'",toString().c_str(),toString(*dep).c_str());
+        throw DependencyInjectionException("Can't satisfy a requirement for '%s' with '%s.'",toString().c_str(),dep->toString().c_str());
       injectRequirement(actualDep);
     }
 
@@ -222,15 +216,26 @@ namespace internal
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
       std::cout << "requirement:" << toString() << " is satisfied by: " << std::endl;
       for (std::vector<InstanceBase*>::const_iterator depIt = dep.begin(); depIt != dep.end(); depIt++)
-        std::cout << "    " << toString(*(*depIt)) << std::endl;
+        std::cout << "    " << (*depIt)->toString() << std::endl;
 #endif
       std::vector<D*> param;
       for (std::vector<InstanceBase*>::const_iterator depIt = dep.begin(); depIt != dep.end(); depIt++)
-        param.push_back((D*)instanceBaseConvertTo((*depIt),parameter));
+        param.push_back((D*)(*depIt)->convertTo(parameter));
       injectRequirementSet(param);
     }
   };
 
-}
+  class FactoryBase
+  {
+  private:
+  protected:
 
+  public:
+
+    virtual void* create(Context* context) throw (DependencyInjectionException) = 0;
+
+    virtual bool dependenciesSatisfied(Context* context) = 0;
+  };
+
+}
 
