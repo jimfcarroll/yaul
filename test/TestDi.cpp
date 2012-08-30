@@ -42,7 +42,7 @@ namespace rudamentaryTests
   {
     Context context;
     context.hasInstance(Type<MyBean>()).provides(Type<IMyBean>());
-    context.hasInstance(Type<Bean>()).requires(Ref<IMyBean>(),&Bean::setMyBean);
+    context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
     context.start();
     context.stop();
     CHECK(destCalled);
@@ -52,7 +52,7 @@ namespace rudamentaryTests
   {
     bool failure = false;
     Context context;
-    context.hasInstance(Type<Bean>()).requires(Ref<IMyBean>(),&Bean::setMyBean);
+    context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
     try
     {
       context.start();
@@ -73,7 +73,7 @@ namespace rudamentaryTests
     Context context;
     context.hasInstance(Type<MyBean>()).provides(Type<IMyBean>());
     context.hasInstance(Type<MyBean>()).provides(Type<IMyBean>());
-    context.hasInstance(Type<Bean>()).requires(Ref<IMyBean>(),&Bean::setMyBean);
+    context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
     try
     {
       context.start();
@@ -112,7 +112,7 @@ namespace simpleexample
   {
     Context context;
     context.hasInstance(Type<Foo>()).
-      requires(Ref<Bar>(), &Foo::setBar).
+      requires(Type<Bar>(), &Foo::setBar).
       postConstruct(&Foo::postConstruct);
 
     // notice without a Bar in the context we will have a failure.
@@ -144,7 +144,7 @@ namespace simpleexample
   TEST(TestSimpleExampleWithIds)
   {
     Context context;
-    context.hasInstance("foo",Type<Foo>()).requires(Ref<Bar>("bar"), &Foo::setBar);
+    context.hasInstance("foo",Type<Foo>()).requires(Type<Bar>("bar"), &Foo::setBar);
 
     // notice without a Bar in the context we will have a failure.
     bool failure = false;
@@ -184,8 +184,8 @@ namespace simpleexample
   TEST(TestSimpleExampleWithDups)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requires(Ref<Bar>("bar1"), &Foo::setBar);
-    context.hasInstance(Type<Foo>()).requires(Ref<Bar>("bar2"), &Foo::setBar);
+    context.hasInstance(Type<Foo>()).requires(Type<Bar>("bar1"), &Foo::setBar);
+    context.hasInstance(Type<Foo>()).requires(Type<Bar>("bar2"), &Foo::setBar);
     context.hasInstance("bar1",Type<Bar>());
     context.hasInstance("bar2",Type<Bar>());
     context.start();
@@ -230,7 +230,7 @@ namespace abstractExample
   TEST(TestSimpleExample)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requires(Ref<IBar>(), &Foo::setIBar);
+    context.hasInstance(Type<Foo>()).requires(Type<IBar>(), &Foo::setIBar);
     context.hasInstance(Type<Bar>()).provides(Type<IBar>());
 
     context.start();
@@ -249,7 +249,7 @@ namespace abstractExample
   TEST(TestSimpleExampleWithId)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requires(Ref<IBar>("bar"), &Foo::setIBar);
+    context.hasInstance(Type<Foo>()).requires(Type<IBar>("bar"), &Foo::setIBar);
     context.hasInstance("bar",Type<Bar>()).provides(Type<IBar>());
 
     context.start();
@@ -443,7 +443,7 @@ namespace vectorTest
   TEST(TestSimple)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requiresAll(Ref<IBar>(),&Foo::setBars);
+    context.hasInstance(Type<Foo>()).requiresAll(Type<IBar>(),&Foo::setBars);
     context.hasInstance(Type<Bar>()).provides(Type<IBar>());
     context.hasInstance(Type<Bar>()).provides(Type<IBar>());
     context.hasInstance(Type<Bar>()).provides(Type<IBar>());
@@ -494,7 +494,7 @@ namespace otherTests
   {
     {
       Context context;
-      context.hasInstance(Type<Foo>()).requires(Ref<IBar>(),&Foo::setIBar);
+      context.hasInstance(Type<Foo>()).requires(Type<IBar>(),&Foo::setIBar);
       context.hasInstance(Type<Bar>()).provides(Type<IBar>());
 
       CHECK(!fooDestructorCalled);

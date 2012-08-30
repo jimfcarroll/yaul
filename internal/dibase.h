@@ -110,11 +110,8 @@ namespace internal
     virtual void doPostConstruct() = 0;
     virtual void doPreDestroy() = 0;
 
-    inline explicit InstanceBase(FactoryBase* f, const TypeBase& tb) : 
-      type(tb), hasId(false), factory(f), hasInstance(false) {}
-
     inline InstanceBase(FactoryBase* f, const char* name, const TypeBase& tb) : 
-      type(tb), id(name), hasId(true), factory(f), hasInstance(false) {}
+      type(tb), hasId(false), factory(f), hasInstance(false) { if (name) { id = name; hasId = true; } }
 
     inline InstanceBase(const InstanceBase& other) : 
       type(other.type), id(other.id), hasId(other.hasId), providesTheseTypes(other.providesTheseTypes), 

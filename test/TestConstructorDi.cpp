@@ -37,7 +37,7 @@ namespace constructorDiTests
   {
     Context context;
     context.hasInstance(Type<Foo>());
-    context.hasInstance(Type<MyBean>(),Ref<Foo>());
+    context.hasInstance(Type<MyBean>(),Type<Foo>());
     context.start();
     MyBean* mybean = context.get(Type<MyBean>());
     CHECK(mybean != NULL);
@@ -50,7 +50,7 @@ namespace constructorDiTests
   TEST(ciFailed)
   {
     Context context;
-    context.hasInstance(Type<MyBean>(),Ref<Foo>());
+    context.hasInstance(Type<MyBean>(),Type<Foo>());
     bool failure = false;
     try
     {
@@ -67,7 +67,7 @@ namespace constructorDiTests
   TEST(ciReverse)
   {
     Context context;
-    context.hasInstance(Type<MyBean>(),Ref<Foo>());
+    context.hasInstance(Type<MyBean>(),Type<Foo>());
     context.hasInstance(Type<Foo>());
     context.start();
     MyBean* mybean = context.get(Type<MyBean>());
@@ -112,7 +112,7 @@ namespace constructorDiTests
   {
     Context context;
     context.hasInstance("foo",Type<Foo>());
-    context.hasInstance(Type<MyBean>(),Ref<Foo>("foo"));
+    context.hasInstance(Type<MyBean>(),Type<Foo>("foo"));
     context.start();
     MyBean* mybean = context.get(Type<MyBean>());
     CHECK(mybean != NULL);
@@ -126,7 +126,7 @@ namespace constructorDiTests
   {
     Context context;
     context.hasInstance(Type<Foo>());
-    context.hasInstance(Type<MyBean>(),Ref<Foo>("foo"));
+    context.hasInstance(Type<MyBean>(),Type<Foo>("foo"));
     context.hasInstance(Type<Foo>());
     bool failure = false;
     try
@@ -144,8 +144,8 @@ namespace constructorDiTests
   TEST(ciCircularRef)
   {
     Context context;
-    context.hasInstance(Type<MyBean>(),Ref<Foo>());
-    context.hasInstance(Type<Foo>(),Ref<MyBean>());
+    context.hasInstance(Type<MyBean>(),Type<Foo>());
+    context.hasInstance(Type<Foo>(),Type<MyBean>());
     bool failure = false;
     try
     {

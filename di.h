@@ -42,13 +42,9 @@
  * Using this api you would say:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>()).requires(Ref<Bar>(), &Foo::setBar);
+ *   context.hasInstance(Type<Foo>()).requires(Type<Bar>(), &Foo::setBar);
  *   context.hasInstance(Type<Bar>);
  *   context.start();
- *
- * A "Ref<T>" is a "Type<T>" that specifically references another instance within
- * the Context. It's analagous to the Spring's <property ref="otherBean" /> but
- * in this case it refers by Type, and optionally by name (see below).
  *
  * 'start' kicks off the instance lifecycles by instantiating the Type<T>'s 
  * that were specified using the class' default constructor. Then it resolves 
@@ -63,11 +59,11 @@
  * took a "Bar" the above example could be implemented as follows:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>(),Ref<Bar>());
+ *   context.hasInstance(Type<Foo>(),Type<Bar>());
  *   context.hasInstance(Type<Bar>);
  *   context.start();
  *
- * Any Ref's (or Constants, see below) specified after the instance type are
+ * Any Type's (or Constants, see below) specified after the instance type are
  * assumed to be parameters of the instances constructor.
  *
  * Constructor injection also allow you to pass Constants. Suppose, in the above
@@ -75,7 +71,7 @@
  * pass a constant value to the 'int' parameter of the constructor as follows:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>(),Ref<Bar>(),Constant<int>(5));
+ *   context.hasInstance(Type<Foo>(),Type<Bar>(),Constant<int>(5));
  *   context.hasInstance(Type<Bar>);
  *   context.start();
  *
@@ -98,7 +94,7 @@
  * The following will NOT work:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>()).requires(Ref<IBar>(), &Foo::setIBar);
+ *   context.hasInstance(Type<Foo>()).requires(Type<IBar>(), &Foo::setIBar);
  *   context.hasInstance(Type<Bar>);
  *   context.start();
  *
@@ -117,7 +113,7 @@
  *  of Foo injected with all of the instances of Bar in the context as follows:
  *
  *  Context context;
- *  context.hasInstance(Type<Foo>()).requiresAll(Ref<IBar>(),&Foo::setBars);
+ *  context.hasInstance(Type<Foo>()).requiresAll(Type<IBar>(),&Foo::setBars);
  *  context.hasInstance(Type<Bar>()).provides(Type<IBar>());
  *  context.hasInstance(Type<Bar>()).provides(Type<IBar>());
  *  context.hasInstance(Type<Bar>()).provides(Type<IBar>());
@@ -128,7 +124,7 @@
  * 'void Foo::setBars(const std::vector<Bar*>)' the following is fine:
  *
  *  Context context;
- *  context.hasInstance(Type<Foo>()).requiresAll(Ref<Bar>(),&Foo::setBars);
+ *  context.hasInstance(Type<Foo>()).requiresAll(Type<Bar>(),&Foo::setBars);
  *  context.hasInstance(Type<Bar>());
  *  context.hasInstance(Type<Bar>());
  *  context.hasInstance(Type<Bar>());
@@ -142,8 +138,8 @@
  * If an instance requires more declaration/clarifications they can be chained:
  *
  *   context.hasInstance(Type<Foo>()).
- *      requires(Ref<Bar>(), &Foo::setBar).
- *      requires(Ref<Other>(), &Foo::setOther).
+ *      requires(Type<Bar>(), &Foo::setBar).
+ *      requires(Type<Other>(), &Foo::setOther).
  *      provides(Type<IFoo>());
  *
  * Note that, by default, all instances 'provide' their own type. The following is an
@@ -156,8 +152,8 @@
  * It's possible to name instances so that requirements and dependencies can be explicitly
  * identified. For example:
  *
- *   context.hasInstance(Type<Foo>()).requires(Ref<IBar>("bar1"), &Foo::setIBar);
- *   context.hasInstance(Type<Foo>()).requires(Ref<IBar>("bar2"), &Foo::setIBar);
+ *   context.hasInstance(Type<Foo>()).requires(Type<IBar>("bar1"), &Foo::setIBar);
+ *   context.hasInstance(Type<Foo>()).requires(Type<IBar>("bar2"), &Foo::setIBar);
  *   context.hasInstance("bar1",Type<Bar>());
  *   context.hasInstance("bar2",Type<Bar>());
  *
@@ -210,16 +206,30 @@ namespace di
   }
 
   // Nothing to see here, move along ...
-  #include "internal/diinternal.h"
+  #include "internal/dibase.h"
 
   /**
    * This class represents the means of declaring type information
    *  to the context.
+   *
+   * When a Type is used in a 'requires' clause it represents a 'reference' 
+   * (in the general sense) to another managed instance within the context. 
+   *
+   * When used for either setter injection, constructor injection, or even
+   * to identify an instance in a hasInstance clause, an 'id' can optionally
+   * be supplied in the constructor. This id narrows the scope of reference
+   * or, in the case it's used in the 'hasInstance' clause, it names the 
+   * instance being instantiated. Therefore the two lines are equivalent:
+   *
+   * context.hasInstance("foo",Type<Foo>());
+   * context.hasInstance(Type<Foo>("foo"));
    */
   template <class T> class Type : public internal::TypeBase
   {
+    const char* objId;
   public:
-    inline Type() : internal::TypeBase(typeid(T)) {}
+    inline Type() : internal::TypeBase(typeid(T)), objId(NULL) {}
+    inline Type(const char* id) : internal::TypeBase(typeid(T)), objId(id) {}
     virtual ~Type() {}
 
     /**
@@ -237,22 +247,19 @@ namespace di
      * operator== and operator!= are defined for Type<T> and delegate
      * to the == and != on typeinfo.
      */
-  };
-
-  template<typename T> class Ref : public Type<T>
-  {
-    const char* objId;
-  public:
-    Ref() : objId(NULL) {}
-    Ref(const char* id) : objId(id) {}
 
     typedef T* type;
 
     inline T* find(Context* context) const throw (DependencyInjectionException);
     inline bool available(Context* context) const;
+
     inline const char* getId() const { return objId; }
   };
 
+  /**
+   * A Constant value can be supplied to satisfy constructor requirements during
+   * constructor injection using this template.
+   */
   template <typename T> class Constant
   {
   private:
@@ -296,9 +303,6 @@ namespace di
         ((*get()).*(preDestroyMethod))();
     }
 
-    inline Instance(internal::FactoryBase* factory) : InstanceBase(factory, Type<T>()), 
-      postConstructMethod(NULL), preDestroyMethod(NULL) { provides(Type<T>()); }
-
     inline explicit Instance(internal::FactoryBase* factory, const char* name) : 
       InstanceBase(factory, name,Type<T>()), postConstructMethod(NULL), 
       preDestroyMethod(NULL) { provides(Type<T>()); }
@@ -332,9 +336,10 @@ namespace di
 
     /**
      * Use this method to declare that this instance requires a particular
-     * dependency.
+     * dependency. Using a Ref you can alternatively supply a name for the
+     * object that this instance requires.
      */
-    template<typename D> inline Instance<T>& requires(const Ref<D>& dependency, typename internal::Requirement<T,D>::Setter setter) 
+    template<typename D> inline Instance<T>& requires(const Type<D>& dependency, typename internal::Requirement<T,D>::Setter setter) 
     {
       requirements.push_back(new internal::Requirement<T,D>(dependency.getId(), this,setter));
       return *this;
@@ -419,7 +424,7 @@ namespace di
      */
     template<typename T> inline Instance<T>& hasInstance(const Type<T>& bean) 
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory0<T>);
+      Instance<T>* newInstance = new Instance<T>(new internal::Factory0<T>,bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -452,7 +457,7 @@ namespace di
      */
     template<typename T, typename P1> inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory1<T,P1>(p1));
+      Instance<T>* newInstance = new Instance<T>(new internal::Factory1<T,P1>(p1),bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -469,7 +474,7 @@ namespace di
      */
     template<typename T, typename P1, typename P2> inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory2<T,P1,P2>(p1,p2));
+      Instance<T>* newInstance = new Instance<T>(new internal::Factory2<T,P1,P2>(p1,p2), bean.getId());
       instances.push_back(newInstance);
       return *newInstance;
     }
@@ -545,13 +550,13 @@ namespace di
     inline bool isStarted() { return curPhase == started; }
   };
 
-  template<typename T> inline T* Ref<T>::find(Context* context) const throw (DependencyInjectionException)
+  template<typename T> inline T* Type<T>::find(Context* context) const throw (DependencyInjectionException)
   {
     internal::InstanceBase* ip1 = (objId == NULL ? context->find(this->getTypeInfo()) : context->find(objId,this->getTypeInfo()));
     return (type)ip1->convertTo(*this);
   }
 
-  template<typename T> inline bool Ref<T>::available(Context* context) const 
+  template<typename T> inline bool Type<T>::available(Context* context) const 
   { 
     internal::InstanceBase* inst = (objId == NULL ? context->find(this->getTypeInfo()) : context->find(objId,this->getTypeInfo()));
     return inst != NULL && inst->instantiated();
