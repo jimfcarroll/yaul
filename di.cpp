@@ -156,7 +156,7 @@ namespace di
 
       while (workingList.size() > 0)
       {
-        int preCount = workingList.size();
+        unsigned int preCount = workingList.size();
         internal::InstanceBase* firstNotInstantiated = NULL;
 
         std::vector<internal::InstanceBase*> tmpvector;

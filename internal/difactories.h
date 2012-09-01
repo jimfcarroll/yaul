@@ -125,4 +125,15 @@ namespace internal
     }
   };
   //=======================================================================
+
+  template<typename T> class StaticSetterCaller
+  {
+  public:
+    typedef void (*StaticSetter)(T*);
+  private:
+    StaticSetter setter;
+  public:
+    inline StaticSetterCaller(StaticSetter settr) : setter(settr) {}
+    inline void set(T* instance) { (*setter)(instance); };
+  };  
 }

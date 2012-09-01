@@ -193,5 +193,24 @@ namespace constructorDiTests
     context.stop();
   }
 
+  static bool called = false;
+  static void MyStaticSetter(MyBean* bean) { called = true; }
+
+  TEST(ciStaticSetter)
+  {
+    Context context;
+    context.hasInstance(Type<Foo>());
+    context.hasInstance(Type<MyBean>(),Type<Foo>());
+    context.staticMethodRequirement(&MyStaticSetter);
+    context.start();
+    MyBean* mybean = context.get(Type<MyBean>());
+    CHECK(mybean != NULL);
+    CHECK(mybean->foo != NULL);
+    CHECK(mybean->ival == -1);
+    CHECK(mybean->foo == context.get(Type<Foo>()));
+    CHECK(called);
+    context.stop();
+  }
+
 }
 

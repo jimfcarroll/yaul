@@ -5,7 +5,6 @@
 #pragma once
 
 #include "StdString.h"
-#include "ilog.h"
 
 #define YAUL_COPYVARARGS(fmt) va_list argList; va_start(argList, fmt); set(fmt, argList); va_end(argList)
 #define YAUL_STANDARD_EXCEPTION(E) \
@@ -26,24 +25,14 @@ namespace YaulCommons
   class Exception
   {
   private:
-    friend class LogSetter<Exception>;
-    static ILogger* logger;
-
     std::string classname;
     std::string message;
-
-    inline void logThrowMessage()
-    {
-      if (logger)
-        logger->Log(LOGERROR,"EXCEPTION Thrown (%s) : %s", classname.c_str(), message.c_str());
-    }
 
   protected:
     inline Exception(const char* classname_) : classname(classname_) { }
     inline Exception(const char* classname_, const char* message_) : classname(classname_), message(message_) { }
 
-    inline Exception(const Exception& other) : classname(other.classname), message(other.message)
-    { logThrowMessage(); }
+    inline Exception(const Exception& other) : classname(other.classname), message(other.message) {}
 
     /**
      * This method is called from the constructor of subclasses. It
@@ -57,8 +46,6 @@ namespace YaulCommons
       CStdString tmps;
       tmps.FormatV(fmt, argList);
       message = tmps;
-
-      logThrowMessage();
     }
 
     /**
@@ -72,8 +59,6 @@ namespace YaulCommons
     }
 
   public:
-    typedef LogSetter<Exception> Settings;
-
     inline const char* getMessage() const { return message.c_str(); }
   };
 }

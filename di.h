@@ -515,6 +515,13 @@ namespace di
       return *newInstance;
     }
 
+    template<typename T>
+    inline void staticMethodRequirement( void (*staticSetter)(T* instance) )
+    {
+      hasInstance(Type<internal::StaticSetterCaller<T> >(), Constant<typename internal::StaticSetterCaller<T>::StaticSetter>(staticSetter)).
+        requires(Type<T>(),&internal::StaticSetterCaller<T>::set);
+    }
+
     /**
      * This triggers the wiring and startup object lifecycle stages. Theses include,
      *  in order:
