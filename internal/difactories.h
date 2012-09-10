@@ -47,7 +47,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.find(context));
+      return new M(p1.findProvides(context));
     }
   };
 
@@ -71,7 +71,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.find(context),p2.find(context));
+      return new M(p1.findProvides(context),p2.findProvides(context));
     }
   };
 
@@ -96,7 +96,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.find(context),p2.find(context),p3.find(context));
+      return new M(p1.findProvides(context),p2.findProvides(context),p3.findProvides(context));
     }
   };
 
@@ -121,7 +121,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.find(context),p2.find(context),p3.find(context),p4.find(context));
+      return new M(p1.findProvides(context),p2.findProvides(context),p3.findProvides(context),p4.findProvides(context));
     }
   };
   //=======================================================================
@@ -136,4 +136,5 @@ namespace internal
     inline StaticSetterCaller(StaticSetter settr) : setter(settr) {}
     inline void set(T* instance) { (*setter)(instance); };
   };  
+
 }

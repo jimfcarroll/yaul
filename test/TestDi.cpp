@@ -35,11 +35,24 @@ namespace rudamentaryTests
   public:
 
     inline void setMyBean(IMyBean* test_) { test = test_; }
+    inline void setMyBean(MyBean* test_) { test = test_; }
     inline void call() { test->func(); }
   };
 
+  TEST(TestDiSimple)
+  {
+    destCalled = false;
+    Context context;
+    context.hasInstance(Type<MyBean>());
+    context.hasInstance(Type<Bean>()).requires(Type<MyBean>(),&Bean::setMyBean);
+    context.start();
+    context.stop();
+    CHECK(destCalled);
+  }
+
   TEST(TestDi)
   {
+    destCalled = false;
     Context context;
     context.hasInstance(Type<MyBean>()).provides(Type<IMyBean>());
     context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
@@ -50,6 +63,7 @@ namespace rudamentaryTests
 
   TEST(TestDiMissingRequirement)
   {
+    destCalled = false;
     bool failure = false;
     Context context;
     context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
@@ -191,8 +205,8 @@ namespace simpleexample
     context.start();
 
     Foo* foo = context.get(Type<Foo>());
-    Bar* bar1 = context.get("bar1",Type<Bar>());
-    Bar* bar2 = context.get("bar2",Type<Bar>());
+    Bar* bar1 = context.get(Type<Bar>(),"bar1");
+    Bar* bar2 = context.get(Type<Bar>(),"bar2");
 
     CHECK(foo != NULL);
     CHECK(foo->bar == bar1 || foo->bar == bar2);
@@ -531,4 +545,5 @@ namespace otherTests
     CHECK(!fooConstructorCalled);
   }
 }
+
 

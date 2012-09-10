@@ -14,7 +14,11 @@ namespace constructorDiTests
 {
   class MyBean;
 
-  class Foo
+  class IFoo
+  {
+  };
+
+  class Foo : public IFoo
   {
   public:
     inline Foo() {}
@@ -28,6 +32,7 @@ namespace constructorDiTests
     int ival;
     std::string name;
 
+    inline MyBean(IFoo* ptr) : foo((Foo*)ptr), ival(-1) {}
     inline MyBean(Foo* ptr) : foo(ptr), ival(-1) {}
     inline MyBean(int i) : foo(NULL), ival(i) {}
     inline MyBean(const char* n) : foo(NULL), ival(-1), name(n) {}
@@ -40,6 +45,20 @@ namespace constructorDiTests
     Context context;
     context.hasInstance(Type<Foo>());
     context.hasInstance(Type<MyBean>(),Type<Foo>());
+    context.start();
+    MyBean* mybean = context.get(Type<MyBean>());
+    CHECK(mybean != NULL);
+    CHECK(mybean->foo != NULL);
+    CHECK(mybean->ival == -1);
+    CHECK(mybean->foo == context.get(Type<Foo>()));
+    context.stop();
+  }
+
+  TEST(ciProvides)
+  {
+    Context context;
+    context.hasInstance(Type<Foo>()).provides(Type<IFoo>());
+    context.hasInstance(Type<MyBean>(),Type<IFoo>());
     context.start();
     MyBean* mybean = context.get(Type<MyBean>());
     CHECK(mybean != NULL);

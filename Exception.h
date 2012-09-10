@@ -5,6 +5,7 @@
 #pragma once
 
 #include "StdString.h"
+#include <iostream>
 
 #define YAUL_COPYVARARGS(fmt) va_list argList; va_start(argList, fmt); set(fmt, argList); va_end(argList)
 #define YAUL_STANDARD_EXCEPTION(E) \
@@ -46,6 +47,7 @@ namespace YaulCommons
       CStdString tmps;
       tmps.FormatV(fmt, argList);
       message = tmps;
+      std::cout << "EXCEPTION:" << getExceptionType() << ":" << getMessage() << std::endl;
     }
 
     /**
@@ -60,6 +62,7 @@ namespace YaulCommons
 
   public:
     inline const char* getMessage() const { return message.c_str(); }
+    inline const char* getExceptionType() const { return classname.c_str(); }
   };
 }
 

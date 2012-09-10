@@ -12,16 +12,6 @@ namespace di
 {
   namespace internal
   {
-    const std::string RequirementBase::toString() const
-    {
-      CStdString msg;
-      if (specifiesId)
-        msg.Format("(%s requires %s with id %s)",instance.getTypeInfo().name(), parameter.getTypeInfo().name(), requiredId.c_str());
-      else
-        msg.Format("(%s requires %s)",instance.getTypeInfo().name(), parameter.getTypeInfo().name());
-      return msg;
-    }
-
     void* InstanceBase::convertTo(const TypeBase& typeToConvertTo) const throw (DependencyInjectionException)
     {
       const void* obj = getConcrete();
@@ -41,7 +31,7 @@ namespace di
       return NULL;
     }
 
-    bool InstanceBase::canConvertTo(const TypeBase& typeToConvertTo) const
+    bool InstanceBase::canConvertTo(const internal::TypeBase& typeToConvertTo) const
     {
       for(std::vector<TypeConverterBase*>::const_iterator it = providesTheseTypes.begin(); it != providesTheseTypes.end(); it++)
       {
@@ -55,28 +45,31 @@ namespace di
     }
   }
 
-  internal::InstanceBase* Context::find(const std::type_info& typeInfo)
+  internal::InstanceBase* Context::find(const internal::TypeBase& typeInfo, const char* id, bool exact)
   {
     for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
       internal::InstanceBase* instance = (*it);
 
-      if (instance->type.getTypeInfo() == typeInfo)
+      if (((exact && instance->type.getTypeInfo() == typeInfo.getTypeInfo()) ||
+           (!exact && instance->canConvertTo(typeInfo))) && 
+          (id == NULL || instance->id == id))
         return instance;
     }
     return NULL;
   }
 
-  internal::InstanceBase* Context::find(const char* id, const std::type_info& typeInfo)
+  void Context::findAll(std::vector<internal::InstanceBase*>& ret, const internal::TypeBase& typeInfo, const char* id, bool exact)
   {
     for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
       internal::InstanceBase* instance = (*it);
 
-      if (instance->type.getTypeInfo() == typeInfo && instance->id == id)
-        return instance;
+      if (((exact && instance->type.getTypeInfo() == typeInfo.getTypeInfo()) ||
+           (!exact && instance->canConvertTo(typeInfo))) && 
+          (id == NULL || instance->id == id))
+        ret.push_back(instance);
     }
-    return NULL;
   }
 
   void Context::resetInstances()
@@ -126,9 +119,10 @@ namespace di
         }
       }
 
-      // clear out the instances.
-      resetInstances();
     }
+
+    // clear out the instances.
+    resetInstances();
   }
 
   void Context::clear()
@@ -199,38 +193,7 @@ namespace di
       for (std::vector<internal::RequirementBase*>::iterator rit = requirements.begin(); rit != requirements.end(); rit++)
       {
         internal::RequirementBase* requirement = (*rit);
-
-        // now go through all of the instances and see which one satisfies 
-        //  the requirements. Make sure that no more than one does.
-        std::vector<internal::InstanceBase*> satisfies;
-
-        for(std::vector<internal::InstanceBase*>::iterator it2 = instances.begin(); it2 != instances.end(); it2++)
-        {
-          internal::InstanceBase* comp = (*it2);
-
-          if (requirement->isSatisfiedBy(comp))
-            satisfies.push_back(comp);
-        }
-
-        if (satisfies.size() < 1)
-        {
-          resetInstances();
-          throw DependencyInjectionException("Cannot satisfy the requirement of \"%s\" which requires \"%s\".", instance->toString().c_str(), requirement->toString().c_str());
-        }
-        else if (!requirement->satisfiedWithSet() && satisfies.size() > 1)
-        {
-          resetInstances();
-          throw DependencyInjectionException("Ambiguous requirement of \"%s\" for \"%s\".", instance->toString().c_str(), requirement->toString().c_str());
-        }
-
-        // ok then, we need to plug in the dependency
-        if (requirement->satisfiedWithSet())
-          requirement->satisfyWithSet(satisfies);
-        else
-        {
-          internal::InstanceBase* dep = satisfies.front();
-          requirement->satisfyWith(dep);
-        }
+        requirement->satisfy(instance,this);
       }
     }
 

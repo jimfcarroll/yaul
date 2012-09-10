@@ -34,27 +34,32 @@ namespace internal
     friend class FactoryBase;
 
   protected:
+    const char* objId;
     const std::type_info* type;
 
-    inline TypeBase(const std::type_info& type_) : type(&type_) 
+    inline TypeBase(const std::type_info& type_) : objId(NULL), type(&type_) 
     { 
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
       std::cout << "Creating type:" << type_.name() << std::endl; 
 #endif
     }
 
-    inline TypeBase(const TypeBase& other) : type(other.type) {}
-    inline TypeBase& operator=(const TypeBase& other) { type=other.type; return *this; }
+    inline TypeBase(const char* id, const std::type_info& type_) : objId(id), type(&type_) 
+    { 
+#ifdef DI__DEPENDENCY_INJECTION_DEBUG
+      std::cout << "Creating type:" << type_.name() << std::endl; 
+#endif
+    }
+
+    inline TypeBase(const TypeBase& other) : objId(other.objId), type(other.type) {}
+    inline TypeBase& operator=(const TypeBase& other) { objId = other.objId; type=other.type; return *this; }
 
   public:
 
-    inline bool operator==(const TypeBase& other) const { return (*type) == (*(other.type)); }
-
-    inline bool operator!=(const TypeBase& other) const { return (*type) != (*(other.type)); }
-
+    inline bool sameType(const TypeBase& other) const { return (*type) == (*(other.type)); }
     inline const std::string toString() const { return type->name(); }
-
     inline const std::type_info& getTypeInfo() const { return (*type); }
+    inline const char* getId() const { return objId; }
   };
 
   /**
@@ -66,10 +71,8 @@ namespace internal
     friend class InstanceBase;
   protected:
     inline explicit TypeConverterBase(const std::type_info& type) : TypeBase(type) {}
-
     virtual void* doConvert(void*) = 0;
-
-    inline bool isTypeToConvertTo(const TypeBase& to) { return (*this) == to; }
+    inline bool isTypeToConvertTo(const TypeBase& to) { return (*this).sameType(to); }
   };
 
   /**
@@ -144,82 +147,20 @@ namespace internal
     friend class di::Context;
 
   protected:
-    TypeBase instance;
-    TypeBase parameter;
-
-    std::string requiredId;
-    bool specifiesId;
-
-    inline RequirementBase(const char* id, const std::type_info& obj, const std::type_info& param) : 
-      instance(obj), parameter(param), specifiesId(id != NULL) { if (id != NULL) requiredId = id; }
-
+    inline RequirementBase() {  }
     virtual ~RequirementBase() {}
 
-    inline bool isSatisfiedBy(const InstanceBase* dep)
-    {
-      return specifiesId ? (dep->hasId ? (requiredId == dep->id && dep->canConvertTo(parameter)) : false) : dep->canConvertTo(parameter);
-    }
-
-    virtual const std::string toString() const;
-
-    virtual void satisfyWith(InstanceBase* dependency) throw (DependencyInjectionException) = 0;
-    virtual bool satisfiedWithSet() = 0;
-    virtual void satisfyWithSet(const std::vector<InstanceBase*>& dep) throw (DependencyInjectionException) = 0;
+    virtual void satisfy(InstanceBase* instance, Context* context) throw (DependencyInjectionException) = 0;
   };
 
-  /**
-   * This template is used to declare a requirement of an object that
-   *  needs to be fulfilled in the container.
-   */
-  template<class T, class D> class Requirement : public internal::RequirementBase
+  template<class T, class D> struct Setter
   {
-    friend class di::Instance<T>;
-  public:
-    typedef void (T::*Setter)(D*);
-    typedef void (T::*SetterAll)(const std::vector<D*>);
+    typedef void (T::*type)(D);
+  };
 
-  private:
-    Setter setter;
-    SetterAll setterAll;
-    InstanceBase* requirementOf;
-
-    inline Requirement(InstanceBase* thingWithSetter, SetterAll func) : 
-      RequirementBase(NULL, typeid(T), typeid(D)), setter(NULL), 
-      setterAll(func), requirementOf(thingWithSetter) {}
-    inline Requirement(const char* id, InstanceBase* thingWithSetter, Setter func) : 
-      RequirementBase(id,typeid(T), typeid(D)), setter(func), setterAll(NULL),
-      requirementOf(thingWithSetter) {}
-
-    inline T* getRequirementOf() { return (T*)requirementOf->getConcrete(); }
-
-    inline void injectRequirement(D* objectToInject) { ((*getRequirementOf()).*(setter))(objectToInject);  }
-    inline void injectRequirementSet(const std::vector<D*>& objectToInject) { ((*getRequirementOf()).*(setterAll))(objectToInject);  }
-
-    inline virtual void satisfyWith(InstanceBase* dep) throw (DependencyInjectionException)
-    {
-#ifdef DI__DEPENDENCY_INJECTION_DEBUG
-      std::cout << "requirement:" << toString() << " is satisfied by " << dep->toString() << std::endl;
-#endif
-      D* actualDep = (D*)dep->convertTo(parameter);
-      if (actualDep == NULL)
-        throw DependencyInjectionException("Can't satisfy a requirement for '%s' with '%s.'",toString().c_str(),dep->toString().c_str());
-      injectRequirement(actualDep);
-    }
-
-    inline virtual bool satisfiedWithSet() { return setterAll != NULL; }
-
-    inline virtual void satisfyWithSet(const std::vector<InstanceBase*>& dep) throw (DependencyInjectionException)
-    {
-#ifdef DI__DEPENDENCY_INJECTION_DEBUG
-      std::cout << "requirement:" << toString() << " is satisfied by: " << std::endl;
-      for (std::vector<InstanceBase*>::const_iterator depIt = dep.begin(); depIt != dep.end(); depIt++)
-        std::cout << "    " << (*depIt)->toString() << std::endl;
-#endif
-      std::vector<D*> param;
-      for (std::vector<InstanceBase*>::const_iterator depIt = dep.begin(); depIt != dep.end(); depIt++)
-        param.push_back((D*)(*depIt)->convertTo(parameter));
-      injectRequirementSet(param);
-    }
+  template<class T, class D> struct SetterAll
+  {
+    typedef void (T::*type)(const std::vector<D>);
   };
 
   class FactoryBase
@@ -233,6 +174,5 @@ namespace internal
 
     virtual bool dependenciesSatisfied(Context* context) = 0;
   };
-
 }
 

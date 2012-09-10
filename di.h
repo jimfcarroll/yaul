@@ -226,10 +226,9 @@ namespace di
    */
   template <class T> class Type : public internal::TypeBase
   {
-    const char* objId;
   public:
-    inline Type() : internal::TypeBase(typeid(T)), objId(NULL) {}
-    inline Type(const char* id) : internal::TypeBase(typeid(T)), objId(id) {}
+    inline Type() : internal::TypeBase(typeid(T)) {}
+    inline Type(const char* id) : internal::TypeBase(id,typeid(T)) {}
     virtual ~Type() {}
 
     /**
@@ -250,11 +249,9 @@ namespace di
 
     typedef T* type;
 
-    inline T* find(Context* context) const throw (DependencyInjectionException);
+    inline T* findProvides(Context* context) const throw (DependencyInjectionException);
     inline bool available(Context* context) const;
-
-    inline const char* getId() const { return objId; }
-  };
+ };
 
   /**
    * A Constant value can be supplied to satisfy constructor requirements during
@@ -270,9 +267,12 @@ namespace di
     inline Constant(T val) : instance(val) {}
     inline Constant(const Constant& o) : instance(o.instance) {}
 
-    inline const T& find(Context* context) { return instance; }
+    inline const T& findProvides(Context* context) { return instance; }
     inline bool available(Context* context) { return true; }
   };
+
+  // Nothing to see here, move along ...
+  #include "internal/direquirement.h"
 
   /**
    * This template allows the declaration of object instances in a context.
@@ -339,9 +339,9 @@ namespace di
      * dependency. Using a Ref you can alternatively supply a name for the
      * object that this instance requires.
      */
-    template<typename D> inline Instance<T>& requires(const Type<D>& dependency, typename internal::Requirement<T,D>::Setter setter) 
+    template<typename D> inline Instance<T>& requires(const Type<D>& dependency, typename internal::Setter<T,D*>::type setter) 
     {
-      requirements.push_back(new internal::Requirement<T,D>(dependency.getId(), this,setter));
+      requirements.push_back(new internal::Requirement<T,D>(dependency,setter));
       return *this;
     }
 
@@ -349,9 +349,9 @@ namespace di
      * Use this method to declare that this instance requires a particular
      * dependency.
      */
-    template<typename D> inline Instance<T>& requiresAll(const Type<D>& dependency, typename internal::Requirement<T,D>::SetterAll setter) 
+    template<typename D> inline Instance<T>& requiresAll(const Type<D>& dependency, typename internal::SetterAll<T,D*>::type setter) 
     {
-      requirements.push_back(new internal::Requirement<T,D>(this,setter));
+      requirements.push_back(new internal::RequirementAll<T,D>(dependency,setter));
       return *this;
     }
 
@@ -385,7 +385,6 @@ namespace di
      * Returns the underlying instance.
      */
     inline T* get() { return (T*)getConcrete(); }
-
   };
 
   // Still nothing to see here, move along ...
@@ -410,8 +409,9 @@ namespace di
 
   public:
 
-    internal::InstanceBase* find(const std::type_info& typeInfo);
-    internal::InstanceBase* find(const char* id, const std::type_info& typeInfo);
+    internal::InstanceBase* find(const internal::TypeBase& typeInfo,const char* id = NULL, bool exact = true);
+
+    void findAll(std::vector<internal::InstanceBase*>& ret, const internal::TypeBase& typeInfo,const char* id = NULL, bool exact = true);
 
     virtual ~Context() { clear(); }
 
@@ -558,25 +558,13 @@ namespace di
     void clear();
 
     /**
-     * Allows retrieving an object by its type. If there is more than
-     *  one instance that is of this type, it will simply return the
-     *  first one it finds in the context.
-     */
-    template<typename T> T* get(Type<T> typeToFind) 
-    { 
-      internal::InstanceBase* ret = find(typeToFind.getTypeInfo()); 
-      
-      return ret != NULL ? ((Instance<T>*)ret)->get() : NULL;
-    }
-
-    /**
      * Allows retrieving an object by its type and Id. If there is more than
      *  one instance that is of this type, it will simply return the
      *  first one it finds in the context.
      */
-    template<typename T> T* get(const char* id, Type<T> typeToFind) 
+    template<typename T> T* get(const Type<T>& typeToFind, const char* id = NULL) 
     { 
-      internal::InstanceBase* ret = find(id,typeToFind.getTypeInfo()); 
+      internal::InstanceBase* ret = find(typeToFind,id); 
       
       return ret != NULL ? ((Instance<T>*)ret)->get() : NULL;
     }
@@ -593,17 +581,8 @@ namespace di
     inline bool isStarted() { return curPhase == started; }
   };
 
-  template<typename T> inline T* Type<T>::find(Context* context) const throw (DependencyInjectionException)
-  {
-    internal::InstanceBase* ip1 = (objId == NULL ? context->find(this->getTypeInfo()) : context->find(objId,this->getTypeInfo()));
-    return (type)ip1->convertTo(*this);
-  }
-
-  template<typename T> inline bool Type<T>::available(Context* context) const 
-  { 
-    internal::InstanceBase* inst = (objId == NULL ? context->find(this->getTypeInfo()) : context->find(objId,this->getTypeInfo()));
-    return inst != NULL && inst->instantiated();
-  }
+  // Nothing to see here, move along ...
+  #include "internal/diimpl.h"
 
 }
 
