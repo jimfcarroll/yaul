@@ -4,7 +4,7 @@
 
 #include "../di.h"
 
-#include <unittest++/UnitTest++.h>
+#include <UnitTest++/UnitTest++.h>
 #include <iostream>
 
 using namespace di;
@@ -32,10 +32,12 @@ namespace rudamentaryTests
   class Bean
   {
     IMyBean* test;
+    int val;
   public:
 
     inline void setMyBean(IMyBean* test_) { test = test_; }
     inline void setMyBean(MyBean* test_) { test = test_; }
+    inline void setInt(int i) { val = i; }
     inline void call() { test->func(); }
   };
 
@@ -48,6 +50,14 @@ namespace rudamentaryTests
     context.start();
     context.stop();
     CHECK(destCalled);
+  }
+
+  TEST(TestDiSimpleConstant)
+  {
+    Context context;
+    context.hasInstance(Type<Bean>()).requires(Constant<int>(5),&Bean::setInt);
+    context.start();
+    context.stop();
   }
 
   TEST(TestDi)

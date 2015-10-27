@@ -12,26 +12,39 @@
 
 namespace internal
 {
-  template<class T, class D> class Requirement : public internal::RequirementBase
+  template<class T, class D, class RDT> class Requirement : public internal::RequirementBase
   {
     friend class di::Instance<T>;
 
-    typename Setter<T,D*>::type setter;
-    Type<D> parameter;
+    typename Setter<T,RDT>::type setter;
+    D parameter;
 
-    inline Requirement(const Type<D>& ty, typename Setter<T,D*>::type func) : setter(func), parameter(ty) {}
+    inline Requirement(const D& ty, typename Setter<T,RDT>::type func) : setter(func), parameter(ty) {}
   protected:
     inline virtual void satisfy(InstanceBase* instance, Context* context) throw (DependencyInjectionException);
   };
 
-  template<class T, class D> class RequirementAll : public internal::RequirementBase
+  template<class T, class D, class RDT> class RequirementConstant : public internal::RequirementBase
   {
     friend class di::Instance<T>;
 
-    typename SetterAll<T,D*>::type setter;
-    Type<D> parameter;
+    typename Setter<T,RDT>::type setter;
+    D parameter;
 
-    inline RequirementAll(const Type<D>& ty, typename SetterAll<T,D*>::type func) : setter(func), parameter(ty) {}
+    inline RequirementConstant(const D& ty, typename Setter<T,RDT>::type func) : setter(func), parameter(ty) {}
+  protected:
+    inline virtual void satisfy(InstanceBase* instance, Context* context) throw (DependencyInjectionException);
+  };
+
+  
+  template<class T, class D, class RDT> class RequirementAll : public internal::RequirementBase
+  {
+    friend class di::Instance<T>;
+
+    typename SetterAll<T,RDT>::type setter;
+    D parameter;
+
+    inline RequirementAll(const D& ty, typename SetterAll<T,RDT>::type func) : setter(func), parameter(ty) {}
   protected:
     inline virtual void satisfy(InstanceBase* instance, Context* context) throw (DependencyInjectionException);
   };

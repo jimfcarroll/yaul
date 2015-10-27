@@ -20,6 +20,9 @@ template<class T> class Instance;
 
 namespace internal
 {
+  // This class is used to prevent copying ... it has no friends (awwww!)
+  class NoCopy { inline NoCopy(const NoCopy& o) {} public: inline NoCopy() {} };
+
   class RequirementBase;
   class InstanceBase;
   class FactoryBase;
@@ -90,10 +93,22 @@ namespace internal
     inline TypeConverter() : TypeConverterBase(typeid(T)) {}
   };
 
+  class FactoryBase
+  {
+  private:
+  protected:
+
+  public:
+
+    virtual void* create(Context* context) throw (DependencyInjectionException) = 0;
+
+    virtual bool dependenciesSatisfied(Context* context) = 0;
+  };
+
   /**
    * Base class for an instance declaration in the DI context
    */
-  class InstanceBase
+  class InstanceBase : public NoCopy
   {
     friend class di::Context;
     friend class RequirementBase;
@@ -107,22 +122,20 @@ namespace internal
 
     std::vector<TypeConverterBase*> providesTheseTypes;
     std::vector<RequirementBase*> requirements;
-    boost::shared_ptr<internal::FactoryBase> factory;
+    internal::FactoryBase* factory;
     bool hasInstance;
 
     virtual void doPostConstruct() = 0;
     virtual void doPreDestroy() = 0;
 
-    inline InstanceBase(boost::shared_ptr<FactoryBase>& f, const char* name, const TypeBase& tb) : 
+    inline InstanceBase(FactoryBase* f, const char* name, const TypeBase& tb) : 
       type(tb), hasId(false), factory(f), hasInstance(false) { if (name) { id = name; hasId = true; } }
 
-    inline InstanceBase(const InstanceBase& other) : 
-      type(other.type), id(other.id), hasId(other.hasId), providesTheseTypes(other.providesTheseTypes), 
-      requirements(other.requirements), factory(other.factory), hasInstance(false) { }
-
-    inline virtual ~InstanceBase() { }
+    inline virtual ~InstanceBase() { if (factory) delete factory; }
 
     inline std::vector<RequirementBase*>& getRequirements() { return requirements; }
+
+    inline void setFactory(FactoryBase* newFactory) { if (factory) delete factory; factory = newFactory; }
 
     bool canConvertTo(const TypeBase& other) const;
 
@@ -163,16 +176,5 @@ namespace internal
     typedef void (T::*type)(const std::vector<D>);
   };
 
-  class FactoryBase
-  {
-  private:
-  protected:
-
-  public:
-
-    virtual void* create(Context* context) throw (DependencyInjectionException) = 0;
-
-    virtual bool dependenciesSatisfied(Context* context) = 0;
-  };
 }
 

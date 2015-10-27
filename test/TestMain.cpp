@@ -2,7 +2,7 @@
  * Copyright (C) 2011
  */
 
-#include <unittest++/UnitTest++.h>
+#include <UnitTest++/UnitTest++.h>
 
 #include <iostream>
 

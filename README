@@ -10,6 +10,5 @@ Currently it contains a C++ based dependency injection framework. Please see
 di.h for complete details.
 
 Current Dependencies:
-        boost::shared_ptr
         UnitTest++ - to build and run the tests
         StdString.h - by Joe O'Leary. This is distributed with the code.

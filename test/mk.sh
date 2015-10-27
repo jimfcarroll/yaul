@@ -1,4 +1,4 @@
 #!/bin/sh
 
-g++ -g *.cpp ../*.cpp -lunittest++
+g++ -std=c++11 -g *.cpp ../*.cpp -lUnitTest++
 
