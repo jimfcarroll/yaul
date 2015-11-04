@@ -21,8 +21,9 @@ namespace constructorDiTests
   class Foo : public IFoo
   {
   public:
+    MyBean* mybean;
     inline Foo() {}
-    inline Foo(MyBean* bean) {}
+    inline Foo(MyBean* bean) { mybean = bean; }
   };
 
   class MyBean
@@ -39,6 +40,22 @@ namespace constructorDiTests
     inline MyBean(Foo* ptr, int i, const char* n) : foo(ptr), ival(i), name(n) {}
     inline MyBean(Foo* ptr, int i, const char* n, Foo* ptr2) : foo(ptr2), ival(i), name(n) {}
   };
+
+  TEST(ciReverseDep)
+  {
+    Context context;
+    context.has(Instance<Foo>(), Instance<MyBean>());
+    context.has(Instance<MyBean>(), Constant<int>(5));
+    context.start();
+    MyBean* mybean = context.get(Instance<MyBean>());
+    Foo* foo = context.get(Instance<Foo>());
+    CHECK(mybean != NULL);
+    CHECK(mybean->foo == NULL);
+    CHECK(foo != NULL);
+    CHECK(mybean->ival == 5);
+    CHECK(foo->mybean == mybean);
+    context.stop();
+  }
 
   TEST(ci)
   {

@@ -545,6 +545,8 @@ namespace otherTests
   static bool fooDestructorCalled = false;
   static bool fooConstructorCalled = false;
 
+  static Bar* fooStaticSetter = NULL;
+
   class Foo
   {
   public:
@@ -552,7 +554,13 @@ namespace otherTests
     inline Foo() { fooConstructorCalled = true; }
     IBar* bar;
     void setIBar(IBar* bar_) { bar = bar_; }
+
+    static void setBarStatic(Bar* bar);
   };
+
+  void Foo::setBarStatic(Bar* bar) {
+    fooStaticSetter = bar;
+  }
 
   TEST(TestStartStopStart)
   {
@@ -593,6 +601,18 @@ namespace otherTests
     CHECK(fooDestructorCalled);
     CHECK(barDestructorCalled);
     CHECK(!fooConstructorCalled);
+  }
+
+  TEST(TestStaticMemberFunction)
+  {
+    Context context;
+    context.has(Instance<Bar>());
+    context.staticMethodRequirement(&Foo::setBarStatic);
+
+    context.start();
+
+    CHECK(fooStaticSetter != NULL);
+    CHECK(fooStaticSetter == context.get(Instance<Bar>()));
   }
 }
 
