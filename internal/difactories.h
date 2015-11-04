@@ -47,7 +47,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.findProvides(context));
+      return new M(p1.findIsAlso(context));
     }
   };
 
@@ -71,7 +71,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.findProvides(context),p2.findProvides(context));
+      return new M(p1.findIsAlso(context),p2.findIsAlso(context));
     }
   };
 
@@ -96,7 +96,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.findProvides(context),p2.findProvides(context),p3.findProvides(context));
+      return new M(p1.findIsAlso(context),p2.findIsAlso(context),p3.findIsAlso(context));
     }
   };
 
@@ -121,7 +121,7 @@ namespace internal
 
     inline virtual void* create(Context* context) throw (DependencyInjectionException)
     {
-      return new M(p1.findProvides(context),p2.findProvides(context),p3.findProvides(context),p4.findProvides(context));
+      return new M(p1.findIsAlso(context),p2.findIsAlso(context),p3.findIsAlso(context),p4.findIsAlso(context));
     }
   };
   //=======================================================================

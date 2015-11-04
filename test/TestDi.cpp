@@ -6,6 +6,7 @@
 
 #include <UnitTest++/UnitTest++.h>
 #include <iostream>
+#include <string>
 
 using namespace di;
 
@@ -33,20 +34,27 @@ namespace rudamentaryTests
   {
     IMyBean* test;
     int val;
+    std::string str;
   public:
+    inline Bean() : test(NULL), val(-1) {}
+    inline Bean(int v) : test(NULL), val(v) {}
+    inline Bean(const std::string& value) : str(value), test(NULL), val(-1) {}
 
     inline void setMyBean(IMyBean* test_) { test = test_; }
     inline void setMyBean(MyBean* test_) { test = test_; }
     inline void setInt(int i) { val = i; }
     inline void call() { test->func(); }
+
+    inline int getVal() { return val; }
+    inline const std::string& getStr() { return str; }
   };
 
   TEST(TestDiSimple)
   {
     destCalled = false;
     Context context;
-    context.hasInstance(Type<MyBean>());
-    context.hasInstance(Type<Bean>()).requires(Type<MyBean>(),&Bean::setMyBean);
+    context.has(Instance<MyBean>());
+    context.has(Instance<Bean>()).requires(Instance<MyBean>(),&Bean::setMyBean);
     context.start();
     context.stop();
     CHECK(destCalled);
@@ -55,8 +63,40 @@ namespace rudamentaryTests
   TEST(TestDiSimpleConstant)
   {
     Context context;
-    context.hasInstance(Type<Bean>()).requires(Constant<int>(5),&Bean::setInt);
+    context.has(Instance<Bean>()).requires(Constant<int>(5),&Bean::setInt);
     context.start();
+
+    Bean* bean = context.get(Instance<Bean>());
+    CHECK(bean != NULL);
+    CHECK(bean->getVal() == 5);
+    
+    context.stop();
+  }
+
+  TEST(TestDiConstructorConstant)
+  {
+    Context context;
+    std::string str = "Yo Dude";
+    context.has(Instance<Bean>(),Constant<std::string>(str));
+    context.start();
+
+    Bean* bean = context.get(Instance<Bean>());
+    CHECK(bean != NULL);
+    CHECK(bean->getStr() == "Yo Dude");
+    
+    context.stop();
+  }
+
+  TEST(TestDiConstructorObjectConstant)
+  {
+    Context context;
+    context.has(Instance<Bean>(),Constant<int>(5));
+    context.start();
+
+    Bean* bean = context.get(Instance<Bean>());
+    CHECK(bean != NULL);
+    CHECK(bean->getVal() == 5);
+    
     context.stop();
   }
 
@@ -64,8 +104,8 @@ namespace rudamentaryTests
   {
     destCalled = false;
     Context context;
-    context.hasInstance(Type<MyBean>()).provides(Type<IMyBean>());
-    context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
+    context.has(Instance<MyBean>()).isAlso(Instance<IMyBean>());
+    context.has(Instance<Bean>()).requires(Instance<IMyBean>(),&Bean::setMyBean);
     context.start();
     context.stop();
     CHECK(destCalled);
@@ -76,7 +116,7 @@ namespace rudamentaryTests
     destCalled = false;
     bool failure = false;
     Context context;
-    context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
+    context.has(Instance<Bean>()).requires(Instance<IMyBean>(),&Bean::setMyBean);
     try
     {
       context.start();
@@ -95,9 +135,9 @@ namespace rudamentaryTests
     destCalled = false;
     bool failure = false;
     Context context;
-    context.hasInstance(Type<MyBean>()).provides(Type<IMyBean>());
-    context.hasInstance(Type<MyBean>()).provides(Type<IMyBean>());
-    context.hasInstance(Type<Bean>()).requires(Type<IMyBean>(),&Bean::setMyBean);
+    context.has(Instance<MyBean>()).isAlso(Instance<IMyBean>());
+    context.has(Instance<MyBean>()).isAlso(Instance<IMyBean>());
+    context.has(Instance<Bean>()).requires(Instance<IMyBean>(),&Bean::setMyBean);
     try
     {
       context.start();
@@ -135,8 +175,8 @@ namespace simpleexample
   TEST(TestSimpleExample)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).
-      requires(Type<Bar>(), &Foo::setBar).
+    context.has(Instance<Foo>()).
+      requires(Instance<Bar>(), &Foo::setBar).
       postConstruct(&Foo::postConstruct);
 
     // notice without a Bar in the context we will have a failure.
@@ -153,14 +193,14 @@ namespace simpleexample
     CHECK(context.isStopped());
 
     // but if we add the bar ...
-    context.hasInstance(Type<Bar>());
+    context.has(Instance<Bar>());
 
     context.start();
 
     CHECK(context.isStarted());
     CHECK(!context.isStopped());
 
-    Foo* foo = context.get(Type<Foo>());
+    Foo* foo = context.get(Instance<Foo>());
     CHECK(foo != NULL);
     CHECK(foo->calledPostConstruct);
   }
@@ -168,7 +208,7 @@ namespace simpleexample
   TEST(TestSimpleExampleWithIds)
   {
     Context context;
-    context.hasInstance("foo",Type<Foo>()).requires(Type<Bar>("bar"), &Foo::setBar);
+    context.has("foo",Instance<Foo>()).requires(Instance<Bar>("bar"), &Foo::setBar);
 
     // notice without a Bar in the context we will have a failure.
     bool failure = false;
@@ -183,7 +223,7 @@ namespace simpleexample
     CHECK(failure);
 
     // but if we add the bar without an id ...
-    context.hasInstance(Type<Bar>());
+    context.has(Instance<Bar>());
 
     // ... it should still fail
     failure = false;
@@ -198,7 +238,7 @@ namespace simpleexample
     CHECK(failure);
 
     // but if we add a Bar with a name then it should work
-    context.hasInstance("bar",Type<Bar>());
+    context.has("bar",Instance<Bar>());
     context.start();
     CHECK(context.isStarted());
     context.stop();
@@ -208,15 +248,15 @@ namespace simpleexample
   TEST(TestSimpleExampleWithDups)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requires(Type<Bar>("bar1"), &Foo::setBar);
-    context.hasInstance(Type<Foo>()).requires(Type<Bar>("bar2"), &Foo::setBar);
-    context.hasInstance("bar1",Type<Bar>());
-    context.hasInstance("bar2",Type<Bar>());
+    context.has(Instance<Foo>()).requires(Instance<Bar>("bar1"), &Foo::setBar);
+    context.has(Instance<Foo>()).requires(Instance<Bar>("bar2"), &Foo::setBar);
+    context.has("bar1",Instance<Bar>());
+    context.has("bar2",Instance<Bar>());
     context.start();
 
-    Foo* foo = context.get(Type<Foo>());
-    Bar* bar1 = context.get(Type<Bar>(),"bar1");
-    Bar* bar2 = context.get(Type<Bar>(),"bar2");
+    Foo* foo = context.get(Instance<Foo>());
+    Bar* bar1 = context.get(Instance<Bar>(),"bar1");
+    Bar* bar2 = context.get(Instance<Bar>(),"bar2");
 
     CHECK(foo != NULL);
     CHECK(foo->bar == bar1 || foo->bar == bar2);
@@ -254,16 +294,16 @@ namespace abstractExample
   TEST(TestSimpleExample)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requires(Type<IBar>(), &Foo::setIBar);
-    context.hasInstance(Type<Bar>()).provides(Type<IBar>());
+    context.has(Instance<Foo>()).requires(Instance<IBar>(), &Foo::setIBar);
+    context.has(Instance<Bar>()).isAlso(Instance<IBar>());
 
     context.start();
     CHECK(context.isStarted());
 
-    Foo* foo = context.get(Type<Foo>());
+    Foo* foo = context.get(Instance<Foo>());
     CHECK(foo);
 
-    Bar* bar = context.get(Type<Bar>());
+    Bar* bar = context.get(Instance<Bar>());
     CHECK(bar);
 
     foo->call();
@@ -273,16 +313,16 @@ namespace abstractExample
   TEST(TestSimpleExampleWithId)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requires(Type<IBar>("bar"), &Foo::setIBar);
-    context.hasInstance("bar",Type<Bar>()).provides(Type<IBar>());
+    context.has(Instance<Foo>()).requires(Instance<IBar>("bar"), &Foo::setIBar);
+    context.has("bar",Instance<Bar>()).isAlso(Instance<IBar>());
 
     context.start();
     CHECK(context.isStarted());
 
-    Foo* foo = context.get(Type<Foo>());
+    Foo* foo = context.get(Instance<Foo>());
     CHECK(foo);
 
-    Bar* bar = context.get(Type<Bar>());
+    Bar* bar = context.get(Instance<Bar>());
     CHECK(bar);
 
     foo->call();
@@ -345,10 +385,10 @@ namespace postConstructTest
   TEST(TestSimplePostConstruct)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).postConstruct(&Foo::postConstruct);
+    context.has(Instance<Foo>()).postConstruct(&Foo::postConstruct);
     context.start();
 
-    Foo* foo = context.get(Type<Foo>());
+    Foo* foo = context.get(Instance<Foo>());
 
     CHECK(foo != NULL);
     CHECK(foo->calledPostConstruct);
@@ -357,10 +397,10 @@ namespace postConstructTest
   TEST(TestParentPostConstruct)
   {
     Context context;
-    context.hasInstance(Type<Bar>()).postConstruct(&IBar::postConstruct);
+    context.has(Instance<Bar>()).postConstruct(&IBar::postConstruct);
     context.start();
 
-    Bar* bar = context.get(Type<Bar>());
+    Bar* bar = context.get(Instance<Bar>());
     CHECK(bar != NULL);
     CHECK(bar->calledPostConstruct);
   }
@@ -371,7 +411,7 @@ namespace postConstructTest
     calledIBarPreDestroy = false;
 
     Context context;
-    context.hasInstance(Type<Foo>()).preDestroy(&Foo::preDestroy);
+    context.has(Instance<Foo>()).preDestroy(&Foo::preDestroy);
     context.start();
 
     context.stop();
@@ -385,7 +425,7 @@ namespace postConstructTest
     calledIBarPreDestroy = false;
 
     Context context;
-    context.hasInstance(Type<Bar>()).preDestroy(&IBar::preDestroy);
+    context.has(Instance<Bar>()).preDestroy(&IBar::preDestroy);
     context.start();
     context.stop();
 
@@ -398,10 +438,10 @@ namespace postConstructTest
     calledIBarPreDestroy = false;
 
     Context context;
-    context.hasInstance(Type<Foo>()).postConstruct(&Foo::postConstruct).preDestroy(&Foo::preDestroy);
+    context.has(Instance<Foo>()).postConstruct(&Foo::postConstruct).preDestroy(&Foo::preDestroy);
     context.start();
 
-    Foo* foo = context.get(Type<Foo>());
+    Foo* foo = context.get(Instance<Foo>());
 
     CHECK(foo != NULL);
     CHECK(foo->calledPostConstruct);
@@ -418,10 +458,10 @@ namespace postConstructTest
     calledIBarPreDestroy = false;
 
     Context context;
-    context.hasInstance(Type<Bar>()).postConstruct(&IBar::postConstruct).preDestroy(&IBar::preDestroy);
+    context.has(Instance<Bar>()).postConstruct(&IBar::postConstruct).preDestroy(&IBar::preDestroy);
     context.start();
 
-    Bar* bar = context.get(Type<Bar>());
+    Bar* bar = context.get(Instance<Bar>());
     CHECK(bar != NULL);
     CHECK(bar->calledPostConstruct);
 
@@ -467,13 +507,13 @@ namespace vectorTest
   TEST(TestSimple)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).requiresAll(Type<IBar>(),&Foo::setBars);
-    context.hasInstance(Type<Bar>()).provides(Type<IBar>());
-    context.hasInstance(Type<Bar>()).provides(Type<IBar>());
-    context.hasInstance(Type<Bar>()).provides(Type<IBar>());
+    context.has(Instance<Foo>()).requiresAll(Instance<IBar>(),&Foo::setBars);
+    context.has(Instance<Bar>()).isAlso(Instance<IBar>());
+    context.has(Instance<Bar>()).isAlso(Instance<IBar>());
+    context.has(Instance<Bar>()).isAlso(Instance<IBar>());
     context.start();
 
-    Foo* foo = context.get(Type<Foo>());
+    Foo* foo = context.get(Instance<Foo>());
 
     CHECK(foo != NULL);
     CHECK(foo->bars.size() == 3);
@@ -518,8 +558,8 @@ namespace otherTests
   {
     {
       Context context;
-      context.hasInstance(Type<Foo>()).requires(Type<IBar>(),&Foo::setIBar);
-      context.hasInstance(Type<Bar>()).provides(Type<IBar>());
+      context.has(Instance<Foo>()).requires(Instance<IBar>(),&Foo::setIBar);
+      context.has(Instance<Bar>()).isAlso(Instance<IBar>());
 
       CHECK(!fooDestructorCalled);
       CHECK(!fooConstructorCalled);

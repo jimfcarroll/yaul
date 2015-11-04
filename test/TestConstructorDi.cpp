@@ -43,35 +43,35 @@ namespace constructorDiTests
   TEST(ci)
   {
     Context context;
-    context.hasInstance(Type<Foo>());
-    context.hasInstance(Type<MyBean>(),Type<Foo>());
+    context.has(Instance<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>());
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo != NULL);
     CHECK(mybean->ival == -1);
-    CHECK(mybean->foo == context.get(Type<Foo>()));
+    CHECK(mybean->foo == context.get(Instance<Foo>()));
     context.stop();
   }
 
-  TEST(ciProvides)
+  TEST(ciIsAlso)
   {
     Context context;
-    context.hasInstance(Type<Foo>()).provides(Type<IFoo>());
-    context.hasInstance(Type<MyBean>(),Type<IFoo>());
+    context.has(Instance<Foo>()).isAlso(Instance<IFoo>());
+    context.has(Instance<MyBean>(),Instance<IFoo>());
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo != NULL);
     CHECK(mybean->ival == -1);
-    CHECK(mybean->foo == context.get(Type<Foo>()));
+    CHECK(mybean->foo == context.get(Instance<Foo>()));
     context.stop();
   }
 
   TEST(ciFailed)
   {
     Context context;
-    context.hasInstance(Type<MyBean>(),Type<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>());
     bool failure = false;
     try
     {
@@ -88,29 +88,29 @@ namespace constructorDiTests
   TEST(ciReverse)
   {
     Context context;
-    context.hasInstance(Type<MyBean>(),Type<Foo>());
-    context.hasInstance(Type<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>());
+    context.has(Instance<Foo>());
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo != NULL);
     CHECK(mybean->ival == -1);
-    CHECK(mybean->foo == context.get(Type<Foo>()));
+    CHECK(mybean->foo == context.get(Instance<Foo>()));
     context.stop();
   }
 
   TEST(ci3Params)
   {
     Context context;
-    context.hasInstance(Type<MyBean>(),Type<Foo>(),Constant<int>(5),Constant<const char*>("Hello"));
-    context.hasInstance(Type<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>(),Constant<int>(5),Constant<const char*>("Hello"));
+    context.has(Instance<Foo>());
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo != NULL);
     CHECK(mybean->ival == 5);
     CHECK(mybean->name == "Hello");
-    CHECK(mybean->foo == context.get(Type<Foo>()));
+    CHECK(mybean->foo == context.get(Instance<Foo>()));
     context.stop();
   }
 
@@ -118,10 +118,10 @@ namespace constructorDiTests
   {
     Foo* tmpfoo;
     Context context;
-    context.hasInstance(Type<MyBean>(),Type<Foo>(),Constant<int>(5),Constant<const char*>("Hello"),Constant<Foo*>(tmpfoo = new Foo));
-    context.hasInstance(Type<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>(),Constant<int>(5),Constant<const char*>("Hello"),Constant<Foo*>(tmpfoo = new Foo));
+    context.has(Instance<Foo>());
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo != NULL);
     CHECK(mybean->ival == 5);
@@ -134,11 +134,11 @@ namespace constructorDiTests
   TEST(ciConstant)
   {
     Context context;
-    context.hasInstance(Type<Foo>());
+    context.has(Instance<Foo>());
     
-    context.hasInstance(Type<MyBean>(),Constant<int>(5));
+    context.has(Instance<MyBean>(),Constant<int>(5));
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo == NULL);
     CHECK(mybean->ival == 5);
@@ -148,11 +148,11 @@ namespace constructorDiTests
   TEST(ciDiffConstant)
   {
     Context context;
-    context.hasInstance(Type<Foo>());
+    context.has(Instance<Foo>());
     
-    context.hasInstance(Type<MyBean>(),Constant<const char*>("Hello"));
+    context.has(Instance<MyBean>(),Constant<const char*>("Hello"));
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo == NULL);
     CHECK(mybean->ival == -1);
@@ -164,23 +164,23 @@ namespace constructorDiTests
   TEST(ciNamed)
   {
     Context context;
-    context.hasInstance("foo",Type<Foo>());
-    context.hasInstance(Type<MyBean>(),Type<Foo>("foo"));
+    context.has("foo",Instance<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>("foo"));
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo != NULL);
     CHECK(mybean->ival == -1);
-    CHECK(mybean->foo == context.get(Type<Foo>()));
+    CHECK(mybean->foo == context.get(Instance<Foo>()));
     context.stop();
   }
 
   TEST(ciNamedFailed)
   {
     Context context;
-    context.hasInstance(Type<Foo>());
-    context.hasInstance(Type<MyBean>(),Type<Foo>("foo"));
-    context.hasInstance(Type<Foo>());
+    context.has(Instance<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>("foo"));
+    context.has(Instance<Foo>());
     bool failure = false;
     try
     {
@@ -197,8 +197,8 @@ namespace constructorDiTests
   TEST(ciCircularRef)
   {
     Context context;
-    context.hasInstance(Type<MyBean>(),Type<Foo>());
-    context.hasInstance(Type<Foo>(),Type<MyBean>());
+    context.has(Instance<MyBean>(),Instance<Foo>());
+    context.has(Instance<Foo>(),Instance<MyBean>());
     bool failure = false;
     try
     {
@@ -218,15 +218,15 @@ namespace constructorDiTests
   TEST(ciStaticSetter)
   {
     Context context;
-    context.hasInstance(Type<Foo>());
-    context.hasInstance(Type<MyBean>(),Type<Foo>());
+    context.has(Instance<Foo>());
+    context.has(Instance<MyBean>(),Instance<Foo>());
     context.staticMethodRequirement(&MyStaticSetter);
     context.start();
-    MyBean* mybean = context.get(Type<MyBean>());
+    MyBean* mybean = context.get(Instance<MyBean>());
     CHECK(mybean != NULL);
     CHECK(mybean->foo != NULL);
     CHECK(mybean->ival == -1);
-    CHECK(mybean->foo == context.get(Type<Foo>()));
+    CHECK(mybean->foo == context.get(Instance<Foo>()));
     CHECK(called);
     context.stop();
   }

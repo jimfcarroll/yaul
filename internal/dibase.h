@@ -16,7 +16,7 @@
  *  non-internal API classes in "di.h".
  */
 class Context;
-template<class T> class Instance;
+template<class T> class Bean;
 
 namespace internal
 {
@@ -24,15 +24,15 @@ namespace internal
   class NoCopy { inline NoCopy(const NoCopy& o) {} public: inline NoCopy() {} };
 
   class RequirementBase;
-  class InstanceBase;
+  class BeanBase;
   class FactoryBase;
 
   /**
    * holds simple rtti type information. Defines equivalence and toString
    */
-  class TypeBase
+  class InstanceBase
   {
-    friend class InstanceBase;
+    friend class BeanBase;
     friend class RequirementBase;
     friend class FactoryBase;
 
@@ -40,28 +40,28 @@ namespace internal
     const char* objId;
     const std::type_info* type;
 
-    inline TypeBase(const std::type_info& type_) : objId(NULL), type(&type_) 
+    inline InstanceBase(const std::type_info& type_) : objId(NULL), type(&type_) 
     { 
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
       std::cout << "Creating type:" << type_.name() << std::endl; 
 #endif
     }
 
-    inline TypeBase(const char* id, const std::type_info& type_) : objId(id), type(&type_) 
+    inline InstanceBase(const char* id, const std::type_info& type_) : objId(id), type(&type_) 
     { 
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
       std::cout << "Creating type:" << type_.name() << std::endl; 
 #endif
     }
 
-    inline TypeBase(const TypeBase& other) : objId(other.objId), type(other.type) {}
-    inline TypeBase& operator=(const TypeBase& other) { objId = other.objId; type=other.type; return *this; }
+    inline InstanceBase(const InstanceBase& other) : objId(other.objId), type(other.type) {}
+    inline InstanceBase& operator=(const InstanceBase& other) { objId = other.objId; type=other.type; return *this; }
 
   public:
 
-    inline bool sameType(const TypeBase& other) const { return (*type) == (*(other.type)); }
+    inline bool sameInstance(const InstanceBase& other) const { return (*type) == (*(other.type)); }
     inline const std::string toString() const { return type->name(); }
-    inline const std::type_info& getTypeInfo() const { return (*type); }
+    inline const std::type_info& getInstanceInfo() const { return (*type); }
     inline const char* getId() const { return objId; }
   };
 
@@ -69,19 +69,19 @@ namespace internal
    * base class for template that defines a type conversion between two 
    *  types in a class hierarchy.
    */
-  class TypeConverterBase : public TypeBase
+  class InstanceConverterBase : public InstanceBase
   {
-    friend class InstanceBase;
+    friend class BeanBase;
   protected:
-    inline explicit TypeConverterBase(const std::type_info& type) : TypeBase(type) {}
+    inline explicit InstanceConverterBase(const std::type_info& type) : InstanceBase(type) {}
     virtual void* doConvert(void*) = 0;
-    inline bool isTypeToConvertTo(const TypeBase& to) { return (*this).sameType(to); }
+    inline bool isInstanceToConvertTo(const InstanceBase& to) { return (*this).sameInstance(to); }
   };
 
   /**
    * Template to allow the instantiation of a particular type conversion
    */
-  template<class T, class F> class TypeConverter : public TypeConverterBase
+  template<class T, class F> class InstanceConverter : public InstanceConverterBase
   {
   protected:
 
@@ -89,8 +89,8 @@ namespace internal
     inline T* convert(F* from) { return (T*)doConvert(from); }
 
   public:
-    // this needs to be public for the "<class D> Instance<T>::provides" method
-    inline TypeConverter() : TypeConverterBase(typeid(T)) {}
+    // this needs to be public for the "<class D> Bean<T>::isAlso" method
+    inline InstanceConverter() : InstanceConverterBase(typeid(T)) {}
   };
 
   class FactoryBase
@@ -99,6 +99,7 @@ namespace internal
   protected:
 
   public:
+    virtual inline ~FactoryBase() {}
 
     virtual void* create(Context* context) throw (DependencyInjectionException) = 0;
 
@@ -108,7 +109,7 @@ namespace internal
   /**
    * Base class for an instance declaration in the DI context
    */
-  class InstanceBase : public NoCopy
+  class BeanBase : public NoCopy
   {
     friend class di::Context;
     friend class RequirementBase;
@@ -116,38 +117,38 @@ namespace internal
 
   protected:
 
-    TypeBase type;
+    InstanceBase type;
     std::string id;
     bool hasId;
 
-    std::vector<TypeConverterBase*> providesTheseTypes;
+    std::vector<InstanceConverterBase*> isAlsoTheseInstances;
     std::vector<RequirementBase*> requirements;
     internal::FactoryBase* factory;
-    bool hasInstance;
+    bool hasBean;
 
     virtual void doPostConstruct() = 0;
     virtual void doPreDestroy() = 0;
 
-    inline InstanceBase(FactoryBase* f, const char* name, const TypeBase& tb) : 
-      type(tb), hasId(false), factory(f), hasInstance(false) { if (name) { id = name; hasId = true; } }
+    inline BeanBase(FactoryBase* f, const char* name, const InstanceBase& tb) : 
+      type(tb), hasId(false), factory(f), hasBean(false) { if (name) { id = name; hasId = true; } }
 
-    inline virtual ~InstanceBase() { if (factory) delete factory; }
+    inline virtual ~BeanBase() { if (factory) delete factory; }
 
     inline std::vector<RequirementBase*>& getRequirements() { return requirements; }
 
     inline void setFactory(FactoryBase* newFactory) { if (factory) delete factory; factory = newFactory; }
 
-    bool canConvertTo(const TypeBase& other) const;
+    bool canConvertTo(const InstanceBase& other) const;
 
-    virtual void instantiateInstance(di::Context*) = 0;
+    virtual void instantiateBean(di::Context*) = 0;
 
     virtual void reset() = 0;
   public:
     virtual const void* getConcrete() const = 0;
 
-    void* convertTo(const TypeBase& typeToConvertTo) const throw (DependencyInjectionException);
+    void* convertTo(const InstanceBase& typeToConvertTo) const throw (DependencyInjectionException);
 
-    inline bool instantiated() { return hasInstance; }
+    inline bool instantiated() { return hasBean; }
 
     inline const std::string toString() const { return hasId ? (id + ":" + type.toString()) : type.toString(); }
   };
@@ -163,7 +164,7 @@ namespace internal
     inline RequirementBase() {  }
     virtual ~RequirementBase() {}
 
-    virtual void satisfy(InstanceBase* instance, Context* context) throw (DependencyInjectionException) = 0;
+    virtual void satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException) = 0;
   };
 
   template<class T, class D> struct Setter

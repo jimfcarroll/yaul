@@ -40,11 +40,11 @@
  * Using this api you would say:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>()).requires(Type<Bar>(), &Foo::setBar);
- *   context.hasInstance(Type<Bar>);
+ *   context.has(Instance<Foo>()).requires(Instance<Bar>(), &Foo::setBar);
+ *   context.has(Instance<Bar>);
  *   context.start();
  *
- * 'start' kicks off the instance lifecycles by instantiating the Type<T>'s 
+ * 'start' kicks off the instance lifecycles by instantiating the Instance<T>'s 
  * that were specified using the class' default constructor. Then it resolves 
  * and satisfies all of the dependencies. Then the "Post Construct" lifecycle
  * stage is executed (see the section on "Lifecycle stages"). An exception is 
@@ -57,11 +57,11 @@
  * took a "Bar" the above example could be implemented as follows:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>(),Type<Bar>());
- *   context.hasInstance(Type<Bar>);
+ *   context.has(Instance<Foo>(),Instance<Bar>());
+ *   context.has(Instance<Bar>);
  *   context.start();
  *
- * Any Type's (or Constants, see below) specified after the instance type are
+ * Any Instance's (or Constants, see below) specified after the instance type are
  * assumed to be parameters of the instances constructor.
  *
  * Constructor injection also allow you to pass Constants. Suppose, in the above
@@ -69,8 +69,8 @@
  * pass a constant value to the 'int' parameter of the constructor as follows:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>(),Type<Bar>(),Constant<int>(5));
- *   context.hasInstance(Type<Bar>);
+ *   context.has(Instance<Foo>(),Instance<Bar>(),Constant<int>(5));
+ *   context.has(Instance<Bar>);
  *   context.start();
  *
  * When 'context.start()' is called, the constructor invocation would look like
@@ -92,8 +92,8 @@
  * The following will NOT work:
  *
  *   Context context;
- *   context.hasInstance(Type<Foo>()).requires(Type<IBar>(), &Foo::setIBar);
- *   context.hasInstance(Type<Bar>);
+ *   context.has(Instance<Foo>()).requires(Instance<IBar>(), &Foo::setIBar);
+ *   context.has(Instance<Bar>);
  *   context.start();
  *
  * Even if Bar extends/implements IBar, the book keeping done by the 
@@ -101,7 +101,7 @@
  * Instead you need to tell the context this. The line above that declares 
  * the instance of Bar should instead look like:
  *
- *   context.hasInstance(Type<Bar>().provides(Type<IBar>()));
+ *   context.has(Instance<Bar>().isAlso(Instance<IBar>()));
  *
  * Set injection:
  *
@@ -111,10 +111,10 @@
  *  of Foo injected with all of the instances of Bar in the context as follows:
  *
  *  Context context;
- *  context.hasInstance(Type<Foo>()).requiresAll(Type<IBar>(),&Foo::setBars);
- *  context.hasInstance(Type<Bar>()).provides(Type<IBar>());
- *  context.hasInstance(Type<Bar>()).provides(Type<IBar>());
- *  context.hasInstance(Type<Bar>()).provides(Type<IBar>());
+ *  context.has(Instance<Foo>()).requiresAll(Instance<IBar>(),&Foo::setBars);
+ *  context.has(Instance<Bar>()).isAlso(Instance<IBar>());
+ *  context.has(Instance<Bar>()).isAlso(Instance<IBar>());
+ *  context.has(Instance<Bar>()).isAlso(Instance<IBar>());
  *  context.start();
  *
  * Note that this example combines the abstraction with the set injection but it
@@ -122,38 +122,38 @@
  * 'void Foo::setBars(const std::vector<Bar*>)' the following is fine:
  *
  *  Context context;
- *  context.hasInstance(Type<Foo>()).requiresAll(Type<Bar>(),&Foo::setBars);
- *  context.hasInstance(Type<Bar>());
- *  context.hasInstance(Type<Bar>());
- *  context.hasInstance(Type<Bar>());
+ *  context.has(Instance<Foo>()).requiresAll(Instance<Bar>(),&Foo::setBars);
+ *  context.has(Instance<Bar>());
+ *  context.has(Instance<Bar>());
+ *  context.has(Instance<Bar>());
  *  context.start();
  *
  * Chaining:
  *
- * Context::hasInstance as well as the Instance methods 'provides' and 'requires'
+ * Context::has as well as the Instance methods 'isAlso' and 'requires'
  * returns the Instance& so that you can chain calls.
  *
  * If an instance requires more declaration/clarifications they can be chained:
  *
- *   context.hasInstance(Type<Foo>()).
- *      requires(Type<Bar>(), &Foo::setBar).
- *      requires(Type<Other>(), &Foo::setOther).
- *      provides(Type<IFoo>());
+ *   context.has(Instance<Foo>()).
+ *      requires(Instance<Bar>(), &Foo::setBar).
+ *      requires(Instance<Other>(), &Foo::setOther).
+ *      isAlso(Instance<IFoo>());
  *
  * Note that, by default, all instances 'provide' their own type. The following is an
  *  error:
  *
- *   context.hasInstance(Type<Foo>()).provides(Type<Foo>());
+ *   context.has(Instance<Foo>()).isAlso(Instance<Foo>());
  *
  * Using instance ids:
  *
  * It's possible to name instances so that requirements and dependencies can be explicitly
  * identified. For example:
  *
- *   context.hasInstance(Type<Foo>()).requires(Type<IBar>("bar1"), &Foo::setIBar);
- *   context.hasInstance(Type<Foo>()).requires(Type<IBar>("bar2"), &Foo::setIBar);
- *   context.hasInstance("bar1",Type<Bar>());
- *   context.hasInstance("bar2",Type<Bar>());
+ *   context.has(Instance<Foo>()).requires(Instance<IBar>("bar1"), &Foo::setIBar);
+ *   context.has(Instance<Foo>()).requires(Instance<IBar>("bar2"), &Foo::setIBar);
+ *   context.has("bar1",Instance<Bar>());
+ *   context.has("bar2",Instance<Bar>());
  *
  * Lifecycle stages:
  *
@@ -177,7 +177,7 @@
  * 'Instance<T>::postConstruct' and 'Instance<T>::preDestroy' register methods respectively.
  * For example:
  *
- * context.hasInstance(Type<Foo>()).
+ * context.has(Instance<Foo>()).
  *     postConstruct(&Foo::postConstructMethod).
  *     preDestroy(&Foo::preDestroyMethod)...
  *
@@ -210,45 +210,45 @@ namespace di
    * This class represents the means of declaring type information
    *  to the context.
    *
-   * When a Type is used in a 'requires' clause it represents a 'reference' 
+   * When a Instance is used in a 'requires' clause it represents a 'reference' 
    * (in the general sense) to another managed instance within the context. 
    *
    * When used for either setter injection, constructor injection, or even
-   * to identify an instance in a hasInstance clause, an 'id' can optionally
+   * to identify an instance in a has clause, an 'id' can optionally
    * be supplied in the constructor. This id narrows the scope of reference
-   * or, in the case it's used in the 'hasInstance' clause, it names the 
+   * or, in the case it's used in the 'has' clause, it names the 
    * instance being instantiated. Therefore the two lines are equivalent:
    *
-   * context.hasInstance("foo",Type<Foo>());
-   * context.hasInstance(Type<Foo>("foo"));
+   * context.has("foo",Instance<Foo>());
+   * context.has(Instance<Foo>("foo"));
    */
-  template <class T> class Type : public internal::TypeBase
+  template <class T> class Instance : public internal::InstanceBase
   {
   public:
-    inline Type() : internal::TypeBase(typeid(T)) {}
-    inline Type(const char* id) : internal::TypeBase(id,typeid(T)) {}
-    virtual ~Type() {}
+    inline Instance() : internal::InstanceBase(typeid(T)) {}
+    inline Instance(const char* id) : internal::InstanceBase(id,typeid(T)) {}
+    virtual ~Instance() {}
 
     /**
-     * public methods defined in TypeBase include:
+     * public methods defined in InstanceBase include:
      *
-     *     const std::string Type<T>::toString() const;
+     *     const std::string Instance<T>::toString() const;
      *
-     * toString method returns the string representation of the Type<T> instance. This
+     * toString method returns the string representation of the Instance<T> instance. This
      * is simply the typeinfo name() result wrapped in a std::string.
      *
-     *     const std::type_info& Type<T>::getTypeInfo() const
+     *     const std::type_info& Instance<T>::getInstanceInfo() const
      *
-     * getTypeInfo returns the rtti typeinfo instance for the type T.
+     * getInstanceInfo returns the rtti typeinfo instance for the type T.
      *
-     * operator== and operator!= are defined for Type<T> and delegate
+     * operator== and operator!= are defined for Instance<T> and delegate
      * to the == and != on typeinfo.
      */
 
     typedef T* type;
 
-    inline void findAll(std::vector<internal::InstanceBase*>& ret, Context* context, bool exact = true) const throw (DependencyInjectionException);
-    inline T* findProvides(Context* context) const throw (DependencyInjectionException);
+    inline void findAll(std::vector<internal::BeanBase*>& ret, Context* context, bool exact = true) const throw (DependencyInjectionException);
+    inline T* findIsAlso(Context* context) const throw (DependencyInjectionException);
     inline bool available(Context* context) const;
  };
 
@@ -266,10 +266,10 @@ namespace di
     inline Constant(T val) : instance(val) {}
     inline Constant(const Constant& o) : instance(o.instance) {}
 
-    inline const std::string toString() const { return std::string("Constant<").append(Type<T>().toString()).append(">"); }
-    inline void findAll(std::vector<internal::InstanceBase*>& ret, Context* context, bool exact = true) 
+    inline const std::string toString() const { return std::string("Constant<").append(Instance<T>().toString()).append(">"); }
+    inline void findAll(std::vector<internal::BeanBase*>& ret, Context* context, bool exact = true) 
       const throw (DependencyInjectionException) { throw DependencyInjectionException("Cannot find all instances of a Constant in a container"); }
-    inline const T& findProvides(Context* context) { return instance; }
+    inline const T& findIsAlso(Context* context) { return instance; }
     inline bool available(Context* context) { return true; }
   };
 
@@ -279,7 +279,7 @@ namespace di
   /**
    * This template allows the declaration of object instances in a context.
    */
-  template<class T> class Instance : public internal::InstanceBase
+  template<class T> class Bean : public internal::BeanBase
   {
     friend class Context;
 
@@ -305,30 +305,30 @@ namespace di
         ((*get()).*(preDestroyMethod))();
     }
 
-    inline explicit Instance(internal::FactoryBase* factory, const char* name) : 
-      InstanceBase(factory, name,Type<T>()), postConstructMethod(NULL), 
-      preDestroyMethod(NULL) { provides(Type<T>()); }
+    inline explicit Bean(internal::FactoryBase* factory, const char* name) : 
+      BeanBase(factory, name,Instance<T>()), postConstructMethod(NULL), 
+      preDestroyMethod(NULL) { isAlso(Instance<T>()); }
 
-    virtual ~Instance() {}
+    virtual ~Bean() {}
 
   protected:
     virtual inline const void* getConcrete() const { return ref; }
 
-    virtual inline void instantiateInstance(Context* c) { ref = (T*)factory->create(c); hasInstance = true; }
+    virtual inline void instantiateBean(Context* c) { ref = (T*)factory->create(c); hasBean = true; }
 
     virtual inline void reset() { if (ref) delete ref; ref = NULL; }
 
   public:
 
     /**
-     * It is possible to explicitly declare that an Instance satisfies a particular
+     * It is possible to explicitly declare that an Bean satisfies a particular
      *  requirement. This is often necessary because relationships within class
      *  hierarchies are not understood by the DI API (if someone can figure out
      *  a way to do this then be my guest).
      */
-    template<typename D> inline Instance<T>& provides(const Type<D>& typeInfo) throw (DependencyInjectionException)
+    template<typename D> inline Bean<T>& isAlso(const Instance<D>& typeInfo) throw (DependencyInjectionException)
     {
-      providesTheseTypes.push_back(new internal::TypeConverter<D,T>);
+      isAlsoTheseInstances.push_back(new internal::InstanceConverter<D,T>);
       return *this; 
     }
 
@@ -337,9 +337,9 @@ namespace di
      * dependency. Using a Ref you can alternatively supply a name for the
      * object that this instance requires.
      */
-    template<typename D> inline Instance<T>& requires(const Type<D>& dependency, typename internal::Setter<T,D*>::type setter) 
+    template<typename D> inline Bean<T>& requires(const Instance<D>& dependency, typename internal::Setter<T,D*>::type setter) 
     {
-      requirements.push_back(new internal::Requirement<T,Type<D>,D*>(dependency,setter));
+      requirements.push_back(new internal::Requirement<T,Instance<D>,D*>(dependency,setter));
       return *this;
     }
 
@@ -348,7 +348,7 @@ namespace di
      * dependency. Using a Ref you can alternatively supply a name for the
      * object that this instance requires.
      */
-    template<typename D> inline Instance<T>& requires(const Constant<D>& dependency, typename internal::Setter<T,D>::type setter) 
+    template<typename D> inline Bean<T>& requires(const Constant<D>& dependency, typename internal::Setter<T,D>::type setter) 
     {
       requirements.push_back(new internal::RequirementConstant<T,Constant<D>,D>(dependency,setter));
       return *this;
@@ -358,17 +358,17 @@ namespace di
      * Use this method to declare that this instance requires a particular
      * dependency.
      */
-    template<typename D> inline Instance<T>& requiresAll(const Type<D>& dependency, typename internal::SetterAll<T,D*>::type setter) 
+    template<typename D> inline Bean<T>& requiresAll(const Instance<D>& dependency, typename internal::SetterAll<T,D*>::type setter) 
     {
-      requirements.push_back(new internal::RequirementAll<T,Type<D>,D*>(dependency,setter));
+      requirements.push_back(new internal::RequirementAll<T,Instance<D>,D*>(dependency,setter));
       return *this;
     }
 
     /**
      * Calling this method instructs the context to call the postConstructMethod
-     *  on the Instance after everything is initialized and wired.
+     *  on the Bean after everything is initialized and wired.
      */
-    inline Instance<T>& postConstruct(PostConstructMethod postConstructMethod_) throw (DependencyInjectionException)
+    inline Bean<T>& postConstruct(PostConstructMethod postConstructMethod_) throw (DependencyInjectionException)
     {
       if (postConstructMethod != NULL)
         throw DependencyInjectionException("Multiple postConstruct registrations detected for '%s'. \"There can be only one (per instance).\"",this->toString().c_str());
@@ -379,9 +379,9 @@ namespace di
 
     /**
      * Calling this method instructs the context to call the preDestroyMethod
-     *  on the Instance before everything is deleted.
+     *  on the Bean before everything is deleted.
      */
-    inline Instance<T>& preDestroy(PreDestroyMethod preDestroyMethod_) throw (DependencyInjectionException)
+    inline Bean<T>& preDestroy(PreDestroyMethod preDestroyMethod_) throw (DependencyInjectionException)
     {
       if (preDestroyMethod != NULL)
         throw DependencyInjectionException("Multiple preDestroy registrations detected for '%s'. \"There can be only one (pre instance).\"",this->toString().c_str());
@@ -407,9 +407,9 @@ namespace di
    */
   class Context
   {
-    std::vector<internal::InstanceBase*> instances;
+    std::vector<internal::BeanBase*> instances;
 
-    void resetInstances();
+    void resetBeans();
 
     enum Phase { initial = 0, started, stopped };
     Phase curPhase;
@@ -418,9 +418,9 @@ namespace di
 
   public:
 
-    internal::InstanceBase* find(const internal::TypeBase& typeInfo,const char* id = NULL, bool exact = true);
+    internal::BeanBase* find(const internal::InstanceBase& typeInfo,const char* id = NULL, bool exact = true);
 
-    void findAll(std::vector<internal::InstanceBase*>& ret, const internal::TypeBase& typeInfo,const char* id = NULL, bool exact = true);
+    void findAll(std::vector<internal::BeanBase*>& ret, const internal::InstanceBase& typeInfo,const char* id = NULL, bool exact = true);
 
     virtual ~Context() { clear(); }
 
@@ -431,11 +431,11 @@ namespace di
      * particular type. The instance will be created using the default 
      * constructor during the start call.
      */
-    template<typename T> inline Instance<T>& hasInstance(const Type<T>& bean) 
+    template<typename T> inline Bean<T>& has(const Instance<T>& bean) 
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory0<T>,bean.getId());
-      instances.push_back(newInstance);
-      return *newInstance;
+      Bean<T>* newBean = new Bean<T>(new internal::Factory0<T>,bean.getId());
+      instances.push_back(newBean);
+      return *newBean;
     }
 
     /**
@@ -446,11 +446,11 @@ namespace di
      * that either expects this to be the case, or expects this not to
      * be the case).
      */
-    template<typename T> inline Instance<T>& hasInstance(const char* id, const Type<T>& bean)
+    template<typename T> inline Bean<T>& has(const char* id, const Instance<T>& bean)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory0<T>,id);
-      instances.push_back(newInstance);
-      return *newInstance;
+      Bean<T>* newBean = new Bean<T>(new internal::Factory0<T>,id);
+      instances.push_back(newBean);
+      return *newBean;
     }
 
 
@@ -464,11 +464,11 @@ namespace di
      *
      * Anything else passed will create a compile error.
      */
-    template<typename T, typename P1> inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1)
+    template<typename T, typename P1> inline Bean<T>& has(const Instance<T>& bean, const P1& p1)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory1<T,P1>(p1),bean.getId());
-      instances.push_back(newInstance);
-      return *newInstance;
+      Bean<T>* newBean = new Bean<T>(new internal::Factory1<T,P1>(p1),bean.getId());
+      instances.push_back(newBean);
+      return *newBean;
     }
 
     /**
@@ -481,11 +481,11 @@ namespace di
      *
      * Anything else passed will create a compile error.
      */
-    template<typename T, typename P1, typename P2> inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2)
+    template<typename T, typename P1, typename P2> inline Bean<T>& has(const Instance<T>& bean, const P1& p1, const P2& p2)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory2<T,P1,P2>(p1,p2), bean.getId());
-      instances.push_back(newInstance);
-      return *newInstance;
+      Bean<T>* newBean = new Bean<T>(new internal::Factory2<T,P1,P2>(p1,p2), bean.getId());
+      instances.push_back(newBean);
+      return *newBean;
     }
 
     /**
@@ -499,11 +499,11 @@ namespace di
      * Anything else passed will create a compile error.
      */
     template<typename T, typename P1, typename P2, typename P3> 
-    inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2, const P3& p3)
+    inline Bean<T>& has(const Instance<T>& bean, const P1& p1, const P2& p2, const P3& p3)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory3<T,P1,P2,P3>(p1,p2,p3), bean.getId());
-      instances.push_back(newInstance);
-      return *newInstance;
+      Bean<T>* newBean = new Bean<T>(new internal::Factory3<T,P1,P2,P3>(p1,p2,p3), bean.getId());
+      instances.push_back(newBean);
+      return *newBean;
     }
 
     /**
@@ -517,18 +517,18 @@ namespace di
      * Anything else passed will create a compile error.
      */
     template<typename T, typename P1, typename P2, typename P3, typename P4> 
-    inline Instance<T>& hasInstance(const Type<T>& bean, const P1& p1, const P2& p2, const P3& p3, const P4& p4)
+    inline Bean<T>& has(const Instance<T>& bean, const P1& p1, const P2& p2, const P3& p3, const P4& p4)
     { 
-      Instance<T>* newInstance = new Instance<T>(new internal::Factory4<T,P1,P2,P3,P4>(p1,p2,p3,p4), bean.getId());
-      instances.push_back(newInstance);
-      return *newInstance;
+      Bean<T>* newBean = new Bean<T>(new internal::Factory4<T,P1,P2,P3,P4>(p1,p2,p3,p4), bean.getId());
+      instances.push_back(newBean);
+      return *newBean;
     }
 
     template<typename T>
     inline void staticMethodRequirement( void (*staticSetter)(T* instance) )
     {
-      hasInstance(Type<internal::StaticSetterCaller<T> >(), Constant<typename internal::StaticSetterCaller<T>::StaticSetter>(staticSetter)).
-        requires(Type<T>(),&internal::StaticSetterCaller<T>::set);
+      has(Instance<internal::StaticSetterCaller<T> >(), Constant<typename internal::StaticSetterCaller<T>::StaticSetter>(staticSetter)).
+        requires(Instance<T>(),&internal::StaticSetterCaller<T>::set);
     }
 
     /**
@@ -559,7 +559,7 @@ namespace di
 
     /**
      * clear() will reset the Context to it's initial state prior to any instances
-     * even being added. It clears all Instances from the context, first invoking
+     * even being added. It clears all Beans from the context, first invoking
      * stop(). Since Exceptions thrown from stop() are swallowed, it is recommended
      * that you don't use this method. Call stop explicitly and allow the Context
      * destructor to clean up the container.
@@ -571,11 +571,11 @@ namespace di
      *  one instance that is of this type, it will simply return the
      *  first one it finds in the context.
      */
-    template<typename T> T* get(const Type<T>& typeToFind, const char* id = NULL) 
+    template<typename T> T* get(const Instance<T>& typeToFind, const char* id = NULL) 
     { 
-      internal::InstanceBase* ret = find(typeToFind,id); 
+      internal::BeanBase* ret = find(typeToFind,id); 
       
-      return ret != NULL ? ((Instance<T>*)ret)->get() : NULL;
+      return ret != NULL ? ((Bean<T>*)ret)->get() : NULL;
     }
 
     /**

@@ -12,18 +12,18 @@ namespace di
 {
   namespace internal
   {
-    void* InstanceBase::convertTo(const TypeBase& typeToConvertTo) const throw (DependencyInjectionException)
+    void* BeanBase::convertTo(const InstanceBase& typeToConvertTo) const throw (DependencyInjectionException)
     {
       const void* obj = getConcrete();
-      for(std::vector<TypeConverterBase*>::const_iterator it = providesTheseTypes.begin(); it != providesTheseTypes.end(); it++)
+      for(std::vector<InstanceConverterBase*>::const_iterator it = isAlsoTheseInstances.begin(); it != isAlsoTheseInstances.end(); it++)
       {
-        TypeConverterBase* typeConverter = (*it);
+        InstanceConverterBase* typeConverter = (*it);
 
-        if (typeConverter->isTypeToConvertTo(typeToConvertTo))
+        if (typeConverter->isInstanceToConvertTo(typeToConvertTo))
         {
-          void* ret = ((TypeConverterBase*)typeConverter)->doConvert((void*)obj);
+          void* ret = ((InstanceConverterBase*)typeConverter)->doConvert((void*)obj);
           if (ret == NULL)
-            throw DependencyInjectionException("Failed to convert a \"%s\" to a \"%s\" using a dynamic_cast for ", typeConverter->toString().c_str(), type.getTypeInfo().name());
+            throw DependencyInjectionException("Failed to convert a \"%s\" to a \"%s\" using a dynamic_cast for ", typeConverter->toString().c_str(), type.getInstanceInfo().name());
           return ret;
         }
       }
@@ -31,13 +31,13 @@ namespace di
       return NULL;
     }
 
-    bool InstanceBase::canConvertTo(const internal::TypeBase& typeToConvertTo) const
+    bool BeanBase::canConvertTo(const internal::InstanceBase& typeToConvertTo) const
     {
-      for(std::vector<TypeConverterBase*>::const_iterator it = providesTheseTypes.begin(); it != providesTheseTypes.end(); it++)
+      for(std::vector<InstanceConverterBase*>::const_iterator it = isAlsoTheseInstances.begin(); it != isAlsoTheseInstances.end(); it++)
       {
-        TypeConverterBase* typeConverter = (*it);
+        InstanceConverterBase* typeConverter = (*it);
 
-        if (typeConverter->isTypeToConvertTo(typeToConvertTo))
+        if (typeConverter->isInstanceToConvertTo(typeToConvertTo))
           return true;
       }
 
@@ -45,13 +45,13 @@ namespace di
     }
   }
 
-  internal::InstanceBase* Context::find(const internal::TypeBase& typeInfo, const char* id, bool exact)
+  internal::BeanBase* Context::find(const internal::InstanceBase& typeInfo, const char* id, bool exact)
   {
-    for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+    for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
-      internal::InstanceBase* instance = (*it);
+      internal::BeanBase* instance = (*it);
 
-      if (((exact && instance->type.getTypeInfo() == typeInfo.getTypeInfo()) ||
+      if (((exact && instance->type.getInstanceInfo() == typeInfo.getInstanceInfo()) ||
            (!exact && instance->canConvertTo(typeInfo))) && 
           (id == NULL || instance->id == id))
         return instance;
@@ -59,23 +59,23 @@ namespace di
     return NULL;
   }
 
-  void Context::findAll(std::vector<internal::InstanceBase*>& ret, const internal::TypeBase& typeInfo, const char* id, bool exact)
+  void Context::findAll(std::vector<internal::BeanBase*>& ret, const internal::InstanceBase& typeInfo, const char* id, bool exact)
   {
-    for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+    for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
-      internal::InstanceBase* instance = (*it);
+      internal::BeanBase* instance = (*it);
 
-      if (((exact && instance->type.getTypeInfo() == typeInfo.getTypeInfo()) ||
+      if (((exact && instance->type.getInstanceInfo() == typeInfo.getInstanceInfo()) ||
            (!exact && instance->canConvertTo(typeInfo))) && 
           (id == NULL || instance->id == id))
         ret.push_back(instance);
     }
   }
 
-  void Context::resetInstances()
+  void Context::resetBeans()
   {
-    internal::InstanceBase* instance;
-    for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+    internal::BeanBase* instance;
+    for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
       // since this results in the instance destructor being called ... in case some moron 
       // throws from the destructor, we don't want to stop deleting.
@@ -99,9 +99,9 @@ namespace di
   {
     if (! isStopped())
     {
-      internal::InstanceBase* instance;
+      internal::BeanBase* instance;
       // pre destroy step
-      for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+      for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
       {
         instance = (*it);
         try
@@ -114,7 +114,7 @@ namespace di
           // hum .... what to do? c++ sucks here in that I cannot get a handle to the 
           // original exception. ... I can either log and rethrow or I can throw another
           // known exception. I wish I could wrap and throw.
-          resetInstances();
+          resetBeans();
           throw DependencyInjectionException("Unknown exception intercepted while executing PreDestroy phase on \"%s.\"", instance->toString().c_str());
         }
       }
@@ -122,13 +122,13 @@ namespace di
     }
 
     // clear out the instances.
-    resetInstances();
+    resetBeans();
   }
 
   void Context::clear()
   {
     try { stop(); } catch (DependencyInjectionException& ex) {}
-    for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+    for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
       delete (*it);
     instances.clear();
     curPhase = initial;
@@ -142,24 +142,24 @@ namespace di
     // First instantiate
     // This loop is stupid. Instead the order of instantiation ought to be determined.
     //  but for now this works.
-    internal::InstanceBase* instance;
+    internal::BeanBase* instance;
     try
     {
-      std::vector<internal::InstanceBase*> workingList;
+      std::vector<internal::BeanBase*> workingList;
       workingList = instances;
 
       while (workingList.size() > 0)
       {
         unsigned int preCount = workingList.size();
-        internal::InstanceBase* firstNotInstantiated = NULL;
+        internal::BeanBase* firstNotInstantiated = NULL;
 
-        std::vector<internal::InstanceBase*> tmpvector;
+        std::vector<internal::BeanBase*> tmpvector;
 
-        for(std::vector<internal::InstanceBase*>::iterator it = workingList.begin(); it != workingList.end(); it++)
+        for(std::vector<internal::BeanBase*>::iterator it = workingList.begin(); it != workingList.end(); it++)
         {
           instance = (*it);
           if (instance->factory->dependenciesSatisfied(this))
-            instance->instantiateInstance(this);
+            instance->instantiateBean(this);
           else if (firstNotInstantiated == NULL)
           {
             firstNotInstantiated = instance;
@@ -179,12 +179,12 @@ namespace di
       // hum .... what to do? c++ sucks here in that I cannot get a handle to the 
       // original exception. ... I can either log and rethrow or I can throw another
       // known exception. I wish I could wrap and throw.
-      resetInstances();
+      resetBeans();
       throw DependencyInjectionException("Unknown exception intercepted while instantiating \"%s.\"", instance->toString().c_str());
     }
 
-    // we need a map of Types to the Instances that provide those types
-    for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+    // we need a map of Instance types to the Beans that provide those types
+    for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
       instance = (*it);
 
@@ -198,7 +198,7 @@ namespace di
     }
 
     // post construct step
-    for(std::vector<internal::InstanceBase*>::iterator it = instances.begin(); it != instances.end(); it++)
+    for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
       instance = (*it);
       try
@@ -211,7 +211,7 @@ namespace di
         // hum .... what to do? c++ sucks here in that I cannot get a handle to the 
         // original exception. ... I can either log and rethrow or I can throw another
         // known exception. I wish I could wrap and throw.
-        resetInstances();
+        resetBeans();
         throw DependencyInjectionException("Unknown exception intercepted while executing postConstruct phase on \"%s.\"", instance->toString().c_str());
       }
     }
