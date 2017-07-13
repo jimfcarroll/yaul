@@ -15,10 +15,9 @@ int main(int argc, char* argv[])
   Context context;
   try
   {
-    context.hasInstance(Type<Car>(),Type<EngineIf>()).
-      postConstruct(&Car::start);
+    context.has(Instance<Car>(),Instance<EngineIf>()).postConstruct(&Car::start);
 
-    context.hasInstance(Type<Engine>()).provides(Type<EngineIf>());
+    context.has(Instance<Engine>()).isAlso(Instance<EngineIf>());
 
     context.start();
   }

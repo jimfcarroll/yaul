@@ -1,4 +1,4 @@
 #!/bin/sh
 
-g++ -g -I../.. *.cpp ../*.cpp -lunittest++ && ./a.out
+g++ -g -I../.. *.cpp ../*.cpp && ./a.out
 
