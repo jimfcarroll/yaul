@@ -4,7 +4,7 @@
 
 #include "../di.h"
 
-#include <UnitTest++/UnitTest++.h>
+#include <UnitTest++.h>
 #include <iostream>
 #include <string>
 
@@ -36,9 +36,9 @@ namespace rudamentaryTests
     int val;
     std::string str;
   public:
-    inline Bean() : test(NULL), val(-1) {}
-    inline Bean(int v) : test(NULL), val(v) {}
-    inline Bean(const std::string& value) : str(value), test(NULL), val(-1) {}
+    inline Bean() : test(nullptr), val(-1) {}
+    inline Bean(int v) : test(nullptr), val(v) {}
+    inline Bean(const std::string& value) : str(value), test(nullptr), val(-1) {}
 
     inline void setMyBean(IMyBean* test_) { test = test_; }
     inline void setMyBean(MyBean* test_) { test = test_; }
@@ -67,7 +67,7 @@ namespace rudamentaryTests
     context.start();
 
     Bean* bean = context.get(Instance<Bean>());
-    CHECK(bean != NULL);
+    CHECK(bean != nullptr);
     CHECK(bean->getVal() == 5);
     
     context.stop();
@@ -81,7 +81,7 @@ namespace rudamentaryTests
     context.start();
 
     Bean* bean = context.get(Instance<Bean>());
-    CHECK(bean != NULL);
+    CHECK(bean != nullptr);
     CHECK(bean->getStr() == "Yo Dude");
     
     context.stop();
@@ -94,7 +94,7 @@ namespace rudamentaryTests
     context.start();
 
     Bean* bean = context.get(Instance<Bean>());
-    CHECK(bean != NULL);
+    CHECK(bean != nullptr);
     CHECK(bean->getVal() == 5);
     
     context.stop();
@@ -201,7 +201,7 @@ namespace simpleexample
     CHECK(!context.isStopped());
 
     Foo* foo = context.get(Instance<Foo>());
-    CHECK(foo != NULL);
+    CHECK(foo != nullptr);
     CHECK(foo->calledPostConstruct);
   }
 
@@ -258,7 +258,7 @@ namespace simpleexample
     Bar* bar1 = context.get(Instance<Bar>(),"bar1");
     Bar* bar2 = context.get(Instance<Bar>(),"bar2");
 
-    CHECK(foo != NULL);
+    CHECK(foo != nullptr);
     CHECK(foo->bar == bar1 || foo->bar == bar2);
   }
 }
@@ -390,7 +390,7 @@ namespace postConstructTest
 
     Foo* foo = context.get(Instance<Foo>());
 
-    CHECK(foo != NULL);
+    CHECK(foo != nullptr);
     CHECK(foo->calledPostConstruct);
   }
 
@@ -401,7 +401,7 @@ namespace postConstructTest
     context.start();
 
     Bar* bar = context.get(Instance<Bar>());
-    CHECK(bar != NULL);
+    CHECK(bar != nullptr);
     CHECK(bar->calledPostConstruct);
   }
 
@@ -443,7 +443,7 @@ namespace postConstructTest
 
     Foo* foo = context.get(Instance<Foo>());
 
-    CHECK(foo != NULL);
+    CHECK(foo != nullptr);
     CHECK(foo->calledPostConstruct);
     CHECK(!calledFooPreDestroy);
 
@@ -462,7 +462,7 @@ namespace postConstructTest
     context.start();
 
     Bar* bar = context.get(Instance<Bar>());
-    CHECK(bar != NULL);
+    CHECK(bar != nullptr);
     CHECK(bar->calledPostConstruct);
 
     CHECK(!calledIBarPreDestroy);
@@ -515,7 +515,7 @@ namespace vectorTest
 
     Foo* foo = context.get(Instance<Foo>());
 
-    CHECK(foo != NULL);
+    CHECK(foo != nullptr);
     CHECK(foo->bars.size() == 3);
   }
 
@@ -545,7 +545,7 @@ namespace otherTests
   static bool fooDestructorCalled = false;
   static bool fooConstructorCalled = false;
 
-  static Bar* fooStaticSetter = NULL;
+  static Bar* fooStaticSetter = nullptr;
 
   class Foo
   {
@@ -611,9 +611,61 @@ namespace otherTests
 
     context.start();
 
-    CHECK(fooStaticSetter != NULL);
+    CHECK(fooStaticSetter != nullptr);
     CHECK(fooStaticSetter == context.get(Instance<Bar>()));
   }
 }
 
+namespace circularDependencyTests
+{
+  class Foo;
+  class IBar
+  {
+  public:
+    virtual ~IBar() = default;
+  };
 
+  class Bar : public IBar
+  {
+  public:
+    Foo* fooey;
+
+    Bar() : fooey(nullptr) {}
+
+    virtual ~Bar() = default;
+    inline void setFoo(Foo* foo) { this->fooey = foo; }
+  };
+
+  class Foo
+  {
+  public:
+    inline ~Foo() = default;
+    inline Foo() = default;
+
+    IBar* bar;
+    inline void setIBar(IBar* bar_) { bar = bar_; }
+  };
+
+  TEST(TestStaticMemberFunction)
+  {
+    Context context;
+    context
+      .has(Instance<Bar>())
+      .requires(Instance<Foo>(), &Bar::setFoo)
+      .isAlso(Instance<IBar>());
+
+    context
+      .has(Instance<Foo>())
+      .requires(Instance<IBar>(), &Foo::setIBar);
+
+    context.start();
+
+    Foo* foo = context.get(Instance<Foo>());
+    CHECK(foo != nullptr);
+    CHECK(foo->bar != nullptr);
+
+    Bar* bar = context.get(Instance<Bar>());
+    CHECK(bar != nullptr);
+    CHECK(bar->fooey == foo);
+  }
+}

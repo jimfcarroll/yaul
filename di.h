@@ -181,8 +181,8 @@
  *     postConstruct(&Foo::postConstructMethod).
  *     preDestroy(&Foo::preDestroyMethod)...
  *
- * After the context has wired up all of the dependnecies, Foo::postConstructMethod 
- * will be called (along with any other registerd postConstruct method on any other
+ * After the context has wired up all of the dependencies, Foo::postConstructMethod
+ * will be called (along with any other registered postConstruct method on any other
  * instance).
  *
  * NOTE: Currently the Context expects only one postConstruct (and/or) preDestroy callback
@@ -306,7 +306,7 @@ namespace di
     }
 
     inline explicit Bean(internal::FactoryBase* factory, const char* name) : 
-      BeanBase(factory, name,Instance<T>()), postConstructMethod(NULL), 
+      BeanBase(factory, name,Instance<T>()), postConstructMethod(NULL), ref(NULL),
       preDestroyMethod(NULL) { isAlso(Instance<T>()); }
 
     virtual ~Bean() {}
@@ -321,7 +321,7 @@ namespace di
   public:
 
     /**
-     * It is possible to explicitly declare that an Bean satisfies a particular
+     * It is possible to explicitly declare that a Bean satisfies a particular
      *  requirement. This is often necessary because relationships within class
      *  hierarchies are not understood by the DI API (if someone can figure out
      *  a way to do this then be my guest).

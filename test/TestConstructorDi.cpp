@@ -4,7 +4,7 @@
 
 #include "../di.h"
 
-#include <UnitTest++/UnitTest++.h>
+#include <UnitTest++.h>
 #include <iostream>
 #include <string>
 
