@@ -646,7 +646,7 @@ namespace circularDependencyTests
     inline void setIBar(IBar* bar_) { bar = bar_; }
   };
 
-  TEST(TestStaticMemberFunction)
+  TEST(TestSimpleCircularDep)
   {
     Context context;
     context
