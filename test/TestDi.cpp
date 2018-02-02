@@ -667,5 +667,7 @@ namespace circularDependencyTests
     Bar* bar = context.get(Instance<Bar>());
     CHECK(bar != nullptr);
     CHECK(bar->fooey == foo);
+
+    CHECK(foo->bar == bar);
   }
 }
