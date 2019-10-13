@@ -2,14 +2,17 @@
  * Copyright (C) 2011
  */
 
+#ifndef DI_HEADER_ONLY
 #include "di.h"
+#endif
+
 #include <map>
 
 namespace di
 {
   namespace internal
   {
-    void* BeanBase::convertTo(const InstanceBase& typeToConvertTo) const /* throw (DependencyInjectionException) */
+    DI_INLINE void* BeanBase::convertTo(const InstanceBase& typeToConvertTo) const /* throw (DependencyInjectionException) */
     {
       const void* obj = getConcrete();
       for(std::vector<InstanceConverterBase*>::const_iterator it = isAlsoTheseInstances.begin(); it != isAlsoTheseInstances.end(); it++)
@@ -28,7 +31,7 @@ namespace di
       return NULL;
     }
 
-    bool BeanBase::canConvertTo(const internal::InstanceBase& typeToConvertTo) const
+    DI_INLINE bool BeanBase::canConvertTo(const internal::InstanceBase& typeToConvertTo) const
     {
       for(std::vector<InstanceConverterBase*>::const_iterator it = isAlsoTheseInstances.begin(); it != isAlsoTheseInstances.end(); it++)
       {
@@ -42,7 +45,7 @@ namespace di
     }
   }
 
-  internal::BeanBase* Context::find(const internal::InstanceBase& typeInfo, const char* id, bool exact)
+  DI_INLINE internal::BeanBase* Context::find(const internal::InstanceBase& typeInfo, const char* id, bool exact)
   {
     for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
@@ -56,7 +59,7 @@ namespace di
     return NULL;
   }
 
-  void Context::findAll(std::vector<internal::BeanBase*>& ret, const internal::InstanceBase& typeInfo, const char* id, bool exact)
+  DI_INLINE void Context::findAll(std::vector<internal::BeanBase*>& ret, const internal::InstanceBase& typeInfo, const char* id, bool exact)
   {
     for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
     {
@@ -69,7 +72,7 @@ namespace di
     }
   }
 
-  void Context::resetBeans()
+  DI_INLINE void Context::resetBeans()
   {
     internal::BeanBase* instance;
     for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
@@ -92,7 +95,7 @@ namespace di
     curPhase = stopped;
   }
 
-  void Context::stop() /* throw (DependencyInjectionException) */
+  DI_INLINE void Context::stop() /* throw (DependencyInjectionException) */
   {
     if (! isStopped())
     {
@@ -122,7 +125,7 @@ namespace di
     resetBeans();
   }
 
-  void Context::clear()
+  DI_INLINE void Context::clear()
   {
     try { stop(); } catch (DependencyInjectionException& ex) {}
     for(std::vector<internal::BeanBase*>::iterator it = instances.begin(); it != instances.end(); it++)
@@ -131,7 +134,7 @@ namespace di
     curPhase = initial;
   }
 
-  void Context::start() /* throw (DependencyInjectionException) */
+  DI_INLINE void Context::start() /* throw (DependencyInjectionException) */
   {
     if (isStarted())
       throw DependencyInjectionException("Called start for a second time on a di::Context.");

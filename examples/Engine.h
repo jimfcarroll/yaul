@@ -8,7 +8,7 @@
 class Engine : public EngineIf
 {
 public:
-  virtual inline void start() throw (const char*)
+  virtual inline void start() /* throw (const char*) */
   {
     printf("Engine Started!\n");
   }

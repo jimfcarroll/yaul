@@ -4,5 +4,5 @@
 class EngineIf
 {
 public:
-  virtual void start() throw (const char*) = 0;
+  virtual void start() /* throw (const char*)*/ = 0;
 };

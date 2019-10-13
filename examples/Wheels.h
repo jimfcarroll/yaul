@@ -8,7 +8,7 @@
 class Wheels : public WheelsIf
 {
 public:
-  virtual inline void turn() throw (const char*)
+  virtual inline void turn() /* throw (const char*) */
   {
     printf("Turning!\n");
   }

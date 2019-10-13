@@ -16,6 +16,12 @@
 #include <iostream>
 #endif
 
+#ifdef DI_HEADER_ONLY
+#define DI_INLINE inline
+#else
+#define DI_INLINE
+#endif
+
 /**
  * These classes represent a simple "dependency injection" framework for c++
  * (see http://en.wikipedia.org/wiki/Dependency_injection). It's loosely based
@@ -308,7 +314,7 @@ namespace di
       BeanBase(factory, name,Instance<T>()), postConstructMethod(NULL), ref(NULL),
       preDestroyMethod(NULL) { isAlso(Instance<T>()); }
 
-    virtual ~Bean() {}
+    inline virtual ~Bean() {}
 
   protected:
     virtual inline const void* getConcrete() const { return ref; }
@@ -417,11 +423,11 @@ namespace di
 
   public:
 
-    internal::BeanBase* find(const internal::InstanceBase& typeInfo,const char* id = NULL, bool exact = true);
+    DI_INLINE internal::BeanBase* find(const internal::InstanceBase& typeInfo,const char* id = NULL, bool exact = true);
 
-    void findAll(std::vector<internal::BeanBase*>& ret, const internal::InstanceBase& typeInfo,const char* id = NULL, bool exact = true);
+    DI_INLINE void findAll(std::vector<internal::BeanBase*>& ret, const internal::InstanceBase& typeInfo,const char* id = NULL, bool exact = true);
 
-    virtual ~Context() { clear(); }
+    DI_INLINE virtual ~Context() { clear(); }
 
     inline Context() : curPhase(initial) {}
 
@@ -543,7 +549,7 @@ namespace di
      * instances. Therefore it is possible that the instances constructors and 
      * destructors may have executed
      */
-    void start() /* throw (DependencyInjectionException) */;
+    DI_INLINE void start() /* throw (DependencyInjectionException) */;
 
     /**
      * progress through the stop/shutdown lifecycle stages. These include,
@@ -554,7 +560,7 @@ namespace di
      * 2) Deletion - Deletes all of the instances that were instantiated 
      *    during the Instantiation lifecycle stage.
      */
-    void stop() /* throw (DependencyInjectionException) */;
+    DI_INLINE void stop() /* throw (DependencyInjectionException) */;
 
     /**
      * clear() will reset the Context to it's initial state prior to any instances
@@ -563,14 +569,14 @@ namespace di
      * that you don't use this method. Call stop explicitly and allow the Context
      * destructor to clean up the container.
      */
-    void clear();
+    DI_INLINE void clear();
 
     /**
      * Allows retrieving an object by its type and Id. If there is more than
      *  one instance that is of this type, it will simply return the
      *  first one it finds in the context.
      */
-    template<typename T> T* get(const Instance<T>& typeToFind, const char* id = NULL) 
+    template<typename T> inline T* get(const Instance<T>& typeToFind, const char* id = NULL) 
     { 
       internal::BeanBase* ret = find(typeToFind,id); 
       
@@ -593,5 +599,9 @@ namespace di
   #include "internal/diimpl.h"
 
 }
+
+#ifdef DI_HEADER_ONLY
+#include "di.cpp"
+#endif
 
 #undef DI__DEPENDENCY_INJECTION__H
