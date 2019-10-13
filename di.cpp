@@ -3,16 +3,13 @@
  */
 
 #include "di.h"
-
-#include "StdString.h"
-
 #include <map>
 
 namespace di
 {
   namespace internal
   {
-    void* BeanBase::convertTo(const InstanceBase& typeToConvertTo) const throw (DependencyInjectionException)
+    void* BeanBase::convertTo(const InstanceBase& typeToConvertTo) const /* throw (DependencyInjectionException) */
     {
       const void* obj = getConcrete();
       for(std::vector<InstanceConverterBase*>::const_iterator it = isAlsoTheseInstances.begin(); it != isAlsoTheseInstances.end(); it++)
@@ -95,7 +92,7 @@ namespace di
     curPhase = stopped;
   }
 
-  void Context::stop() throw (DependencyInjectionException)
+  void Context::stop() /* throw (DependencyInjectionException) */
   {
     if (! isStopped())
     {
@@ -134,7 +131,7 @@ namespace di
     curPhase = initial;
   }
 
-  void Context::start() throw (DependencyInjectionException)
+  void Context::start() /* throw (DependencyInjectionException) */
   {
     if (isStarted())
       throw DependencyInjectionException("Called start for a second time on a di::Context.");

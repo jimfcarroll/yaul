@@ -7,7 +7,6 @@
 #define DI__DEPENDENCY_INJECTION__H
 //#define DI__DEPENDENCY_INJECTION_DEBUG
 
-#include "StdString.h"
 #include "Exception.h"
 
 #include <typeinfo>
@@ -225,8 +224,8 @@ namespace di
   template <class T> class Instance : public internal::InstanceBase
   {
   public:
-    inline Instance() : internal::InstanceBase(typeid(T)) {}
-    inline Instance(const char* id) : internal::InstanceBase(id,typeid(T)) {}
+    inline Instance() noexcept : internal::InstanceBase(typeid(T)) {}
+    inline Instance(const char* id) noexcept : internal::InstanceBase(id,typeid(T)) {}
     virtual ~Instance() {}
 
     /**
@@ -247,8 +246,8 @@ namespace di
 
     typedef T* type;
 
-    inline void findAll(std::vector<internal::BeanBase*>& ret, Context* context, bool exact = true) const throw (DependencyInjectionException);
-    inline T* findIsAlso(Context* context) const throw (DependencyInjectionException);
+    inline void findAll(std::vector<internal::BeanBase*>& ret, Context* context, bool exact = true) const /* throw (DependencyInjectionException) */;
+    inline T* findIsAlso(Context* context) const /* throw (DependencyInjectionException) */;
     inline bool available(Context* context) const;
  };
 
@@ -268,9 +267,9 @@ namespace di
 
     inline const std::string toString() const { return std::string("Constant<").append(Instance<T>().toString()).append(">"); }
     inline void findAll(std::vector<internal::BeanBase*>& ret, Context* context, bool exact = true) 
-      const throw (DependencyInjectionException) { throw DependencyInjectionException("Cannot find all instances of a Constant in a container"); }
-    inline const T& findIsAlso(Context* context) { return instance; }
-    inline bool available(Context* context) { return true; }
+      const /* throw (DependencyInjectionException) */ { throw DependencyInjectionException("Cannot find all instances of a Constant in a container"); }
+    inline const T& findIsAlso(Context* context) noexcept { return instance; }
+    inline bool available(Context* context) noexcept { return true; }
   };
 
   // Nothing to see here, move along ...
@@ -326,7 +325,7 @@ namespace di
      *  hierarchies are not understood by the DI API (if someone can figure out
      *  a way to do this then be my guest).
      */
-    template<typename D> inline Bean<T>& isAlso(const Instance<D>& typeInfo) throw (DependencyInjectionException)
+    template<typename D> inline Bean<T>& isAlso(const Instance<D>& typeInfo) /* throw (DependencyInjectionException) */
     {
       isAlsoTheseInstances.push_back(new internal::InstanceConverter<D,T>);
       return *this; 
@@ -368,7 +367,7 @@ namespace di
      * Calling this method instructs the context to call the postConstructMethod
      *  on the Bean after everything is initialized and wired.
      */
-    inline Bean<T>& postConstruct(PostConstructMethod postConstructMethod_) throw (DependencyInjectionException)
+    inline Bean<T>& postConstruct(PostConstructMethod postConstructMethod_) /* throw (DependencyInjectionException) */
     {
       if (postConstructMethod != NULL)
         throw DependencyInjectionException("Multiple postConstruct registrations detected for '%s'. \"There can be only one (per instance).\"",this->toString().c_str());
@@ -381,7 +380,7 @@ namespace di
      * Calling this method instructs the context to call the preDestroyMethod
      *  on the Bean before everything is deleted.
      */
-    inline Bean<T>& preDestroy(PreDestroyMethod preDestroyMethod_) throw (DependencyInjectionException)
+    inline Bean<T>& preDestroy(PreDestroyMethod preDestroyMethod_) /* throw (DependencyInjectionException) */
     {
       if (preDestroyMethod != NULL)
         throw DependencyInjectionException("Multiple preDestroy registrations detected for '%s'. \"There can be only one (pre instance).\"",this->toString().c_str());
@@ -544,7 +543,7 @@ namespace di
      * instances. Therefore it is possible that the instances constructors and 
      * destructors may have executed
      */
-    void start() throw (DependencyInjectionException);
+    void start() /* throw (DependencyInjectionException) */;
 
     /**
      * progress through the stop/shutdown lifecycle stages. These include,
@@ -555,7 +554,7 @@ namespace di
      * 2) Deletion - Deletes all of the instances that were instantiated 
      *    during the Instantiation lifecycle stage.
      */
-    void stop() throw (DependencyInjectionException);
+    void stop() /* throw (DependencyInjectionException) */;
 
     /**
      * clear() will reset the Context to it's initial state prior to any instances

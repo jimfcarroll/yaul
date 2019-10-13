@@ -101,7 +101,7 @@ namespace internal
   public:
     virtual inline ~FactoryBase() {}
 
-    virtual void* create(Context* context) throw (DependencyInjectionException) = 0;
+    virtual void* create(Context* context) /*throw (DependencyInjectionException) */ = 0;
 
     virtual bool dependenciesSatisfied(Context* context) = 0;
   };
@@ -146,7 +146,7 @@ namespace internal
   public:
     virtual const void* getConcrete() const = 0;
 
-    void* convertTo(const InstanceBase& typeToConvertTo) const throw (DependencyInjectionException);
+    void* convertTo(const InstanceBase& typeToConvertTo) const /* throw (DependencyInjectionException) */;
 
     inline bool instantiated() { return hasBean; }
 
@@ -164,7 +164,7 @@ namespace internal
     inline RequirementBase() {  }
     virtual ~RequirementBase() {}
 
-    virtual void satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException) = 0;
+    virtual void satisfy(BeanBase* instance, Context* context) /* throw (DependencyInjectionException) */ = 0;
   };
 
   template<class T, class D> struct Setter

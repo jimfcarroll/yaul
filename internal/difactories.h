@@ -28,7 +28,7 @@ namespace internal
 
     inline virtual bool dependenciesSatisfied(Context* context) { return true; }
 
-    inline virtual void* create(Context* context) throw (DependencyInjectionException) { return new M; }
+    inline virtual void* create(Context* context) /* throw (DependencyInjectionException) */ { return new M; }
   };
 
   /**
@@ -45,7 +45,7 @@ namespace internal
 
     inline virtual bool dependenciesSatisfied(Context* context) { return p1.available(context); }
 
-    inline virtual void* create(Context* context) throw (DependencyInjectionException)
+    inline virtual void* create(Context* context) /* throw (DependencyInjectionException) */
     {
       return new M(p1.findIsAlso(context));
     }
@@ -69,7 +69,7 @@ namespace internal
       return p1.available(context) && p2.available(context);
     }
 
-    inline virtual void* create(Context* context) throw (DependencyInjectionException)
+    inline virtual void* create(Context* context) /* throw (DependencyInjectionException) */
     {
       return new M(p1.findIsAlso(context),p2.findIsAlso(context));
     }
@@ -94,7 +94,7 @@ namespace internal
       return p1.available(context) && p2.available(context) && p3.available(context); 
     }
 
-    inline virtual void* create(Context* context) throw (DependencyInjectionException)
+    inline virtual void* create(Context* context) /* throw (DependencyInjectionException) */
     {
       return new M(p1.findIsAlso(context),p2.findIsAlso(context),p3.findIsAlso(context));
     }
@@ -119,7 +119,7 @@ namespace internal
       return p1.available(context) && p2.available(context) && p3.available(context) && p4.available(context); 
     }
 
-    inline virtual void* create(Context* context) throw (DependencyInjectionException)
+    inline virtual void* create(Context* context) /* throw (DependencyInjectionException) */
     {
       return new M(p1.findIsAlso(context),p2.findIsAlso(context),p3.findIsAlso(context),p4.findIsAlso(context));
     }

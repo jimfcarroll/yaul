@@ -21,7 +21,7 @@ namespace internal
 
     inline Requirement(const D& ty, typename Setter<T,RDT>::type func) : setter(func), parameter(ty) {}
   protected:
-    inline virtual void satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException);
+    inline virtual void satisfy(BeanBase* instance, Context* context) /* throw (DependencyInjectionException) */;
   };
 
   template<class T, class D, class RDT> class RequirementConstant : public internal::RequirementBase
@@ -33,7 +33,7 @@ namespace internal
 
     inline RequirementConstant(const D& ty, typename Setter<T,RDT>::type func) : setter(func), parameter(ty) {}
   protected:
-    inline virtual void satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException);
+    inline virtual void satisfy(BeanBase* instance, Context* context) /* throw (DependencyInjectionException) */;
   };
 
   
@@ -46,7 +46,7 @@ namespace internal
 
     inline RequirementAll(const D& ty, typename SetterAll<T,RDT>::type func) : setter(func), parameter(ty) {}
   protected:
-    inline virtual void satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException);
+    inline virtual void satisfy(BeanBase* instance, Context* context) /* throw (DependencyInjectionException) */;
   };
 }
 

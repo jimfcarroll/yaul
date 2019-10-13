@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "StdString.h"
+#include <stdarg.h>
 #include <iostream>
 
 #define YAUL_COPYVARARGS(fmt) va_list argList; va_start(argList, fmt); set(fmt, argList); va_end(argList)
@@ -30,8 +30,8 @@ namespace YaulCommons
     std::string message;
 
   protected:
-    inline Exception(const char* classname_) : classname(classname_) { }
-    inline Exception(const char* classname_, const char* message_) : classname(classname_), message(message_) { }
+    inline Exception(const char* classname_) noexcept : classname(classname_)  { }
+    inline Exception(const char* classname_, const char* message_) noexcept : classname(classname_), message(message_) { }
 
     inline Exception(const Exception& other) : classname(other.classname), message(other.message) {}
 
@@ -39,14 +39,11 @@ namespace YaulCommons
      * This method is called from the constructor of subclasses. It
      * will set the message from varargs as well as call log message
      */
-    inline void set(const char* fmt, va_list& argList)
+    inline void set(const char* fmt, va_list& argList) noexcept
     {
-      // this is a hack and wont work if CStdString ever has
-      //  state information
-      //      ((CStdString*)(&message))->FormatV(fmt, argList);
-      CStdString tmps;
-      tmps.FormatV(fmt, argList);
-      message = tmps;
+      char buf[1024];
+      vsnprintf(buf,sizeof(buf),fmt,argList);
+      message = buf;
       std::cout << "EXCEPTION:" << getExceptionType() << ":" << getMessage() << std::endl;
     }
 
@@ -54,15 +51,15 @@ namespace YaulCommons
      * This message can be called from the constructor of subclasses.
      * It will set the message and log the throwing.
      */
-    inline void setMessage(const char* fmt, ...)
+    inline void setMessage(const char* fmt, ...) noexcept
     {
       // calls 'set'
       YAUL_COPYVARARGS(fmt);
     }
 
   public:
-    inline const char* getMessage() const { return message.c_str(); }
-    inline const char* getExceptionType() const { return classname.c_str(); }
+    inline const char* getMessage() const noexcept { return message.c_str(); }
+    inline const char* getExceptionType() const noexcept { return classname.c_str(); }
   };
 }
 

@@ -12,7 +12,7 @@
 
 namespace internal
 {
-  template<class T, class D, class RDT> inline void Requirement<T,D,RDT>::satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException)
+  template<class T, class D, class RDT> inline void Requirement<T,D,RDT>::satisfy(BeanBase* instance, Context* context) /* throw (DependencyInjectionException) */
   {
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
     std::cout << "requirement:" << toString() << " is satisfied by " << dep->toString() << std::endl;
@@ -27,7 +27,7 @@ namespace internal
     (((T*)instance->getConcrete())->*(setter)) ((RDT)dep->getConcrete());
   }
 
-  template<class T, class D, class RDT> inline void RequirementConstant<T,D,RDT>::satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException)
+  template<class T, class D, class RDT> inline void RequirementConstant<T,D,RDT>::satisfy(BeanBase* instance, Context* context) /* throw (DependencyInjectionException) */
   {
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
     std::cout << "requirement:" << toString() << " is satisfied by " << dep->toString() << std::endl;
@@ -35,7 +35,7 @@ namespace internal
     (((T*)instance->getConcrete())->*(setter)) (parameter.findIsAlso(context));
   }
 
-  template<class T, class D, class RDT> inline void RequirementAll<T,D,RDT>::satisfy(BeanBase* instance, Context* context) throw (DependencyInjectionException)
+  template<class T, class D, class RDT> inline void RequirementAll<T,D,RDT>::satisfy(BeanBase* instance, Context* context) /* throw (DependencyInjectionException) */
   {
 #ifdef DI__DEPENDENCY_INJECTION_DEBUG
     std::cout << "requirement:" << toString() << " is satisfied by " << dep->toString() << std::endl;
@@ -51,12 +51,12 @@ namespace internal
   }
 }
 
-template<typename T> void Instance<T>::findAll(std::vector<internal::BeanBase*>& ret, Context* context, bool exact) const throw (DependencyInjectionException)
+template<typename T> void Instance<T>::findAll(std::vector<internal::BeanBase*>& ret, Context* context, bool exact) const /* throw (DependencyInjectionException) */
 {
   context->findAll(ret,*this,this->getId(),exact);
 }
 
-template<typename T> inline T* Instance<T>::findIsAlso(Context* context) const throw (DependencyInjectionException)
+template<typename T> inline T* Instance<T>::findIsAlso(Context* context) const /* throw (DependencyInjectionException) */
 {
   internal::BeanBase* inst = context->find(*this,objId,false);
   return inst ? (type)(inst->convertTo(*this)) : NULL;
